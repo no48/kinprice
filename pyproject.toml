@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests that hit the real network (deselect with '-m \"not slow\"')",
+]

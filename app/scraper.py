@@ -60,6 +60,7 @@ def scrape_gold_price(url: Optional[str] = None, html: Optional[str] = None) -> 
 
 def _parse_from_html(html: str) -> dict:
     """テスト用: 固定HTMLからパースする（Playwrightを使わない）"""
+    import re
     from bs4 import BeautifulSoup
 
     soup = BeautifulSoup(html, "html.parser")
@@ -70,6 +71,8 @@ def _parse_from_html(html: str) -> dict:
     all_p = soup.find_all("p", class_="text")
     for i, el in enumerate(all_p):
         text = el.get_text(strip=True)
+        if re.match(r"\d{4}/\d{2}/\d{2} \d{2}:\d{2}", text):
+            date_text = text
         if text == "金" and i + 1 < len(all_p):
             price_value = all_p[i + 1].get_text(strip=True)
             break

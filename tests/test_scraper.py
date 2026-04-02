@@ -47,10 +47,10 @@ def test_scrape_gold_price_parses_price():
 
 
 def test_scrape_gold_price_includes_date():
-    """結果に日付が含まれる"""
+    """結果に日付が含まれ、HTMLに記載の日付と一致する"""
     result = scrape_gold_price(html=SAMPLE_HTML)
     assert "date" in result
-    assert result["date"] != ""
+    assert result["date"] == "2026/04/02 11:30"
 
 
 def test_scrape_gold_price_simple_html():
