@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金価格アップロードツール</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>金価格アップロードツール</h1>
+
+        <button id="btn-fetch" class="btn btn-fetch">価格を取得する</button>
+
+        <form id="price-form" class="price-form hidden">
+            <div class="form-group">
+                <label for="retail-price">小売価格</label>
+                <div class="input-row">
+                    <input type="text" id="retail-price" name="retail_price" placeholder="例: 26,200">
+                    <span class="unit">円/g</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="purchase-price">買取価格</label>
+                <div class="input-row">
+                    <input type="text" id="purchase-price" name="purchase_price" placeholder="例: 25,000">
+                    <span class="unit">円/g</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="price-date">取得日時</label>
+                <input type="text" id="price-date" name="date" readonly>
+            </div>
+
+            <div class="checkboxes">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="post-to-wp" checked>
+                    WordPressに投稿
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="post-to-google" checked>
+                    Googleビジネスに投稿
+                </label>
+            </div>
+
+            <button type="button" id="btn-upload" class="btn btn-upload">アップロード</button>
+        </form>
+
+        <div id="status" class="status hidden"></div>
+    </div>
+
+    <script>
+        const BASE_URL = "{{ url_for('main.index') }}".replace(/\/$/, '');
+
+        const btnFetch = document.getElementById('btn-fetch');
+        const btnUpload = document.getElementById('btn-upload');
+        const priceForm = document.getElementById('price-form');
+        const statusEl = document.getElementById('status');
+        const retailPriceEl = document.getElementById('retail-price');
+        const purchasePriceEl = document.getElementById('purchase-price');
+        const priceDateEl = document.getElementById('price-date');
+        const postToWpEl = document.getElementById('post-to-wp');
+        const postToGoogleEl = document.getElementById('post-to-google');
+
+        function showStatus(message, type) {
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + type;
+            statusEl.classList.remove('hidden');
+        }
+
+        function hideStatus() {
+            statusEl.classList.add('hidden');
+        }
+
+        btnFetch.addEventListener('click', async () => {
+            btnFetch.disabled = true;
+            btnFetch.textContent = '取得中...';
+            hideStatus();
+
+            try {
+                const res = await fetch(BASE_URL + '/fetch', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.error) {
+                    showStatus('エラー: ' + data.error, 'error');
+                } else {
+                    retailPriceEl.value = data.retail_price || '';
+                    purchasePriceEl.value = data.purchase_price || '';
+                    priceDateEl.value = data.date || '';
+                    priceForm.classList.remove('hidden');
+                }
+            } catch (e) {
+                showStatus('通信エラーが発生しました: ' + e.message, 'error');
+            } finally {
+                btnFetch.disabled = false;
+                btnFetch.textContent = '価格を取得する';
+            }
+        });
+
+        btnUpload.addEventListener('click', async () => {
+            btnUpload.disabled = true;
+            btnUpload.textContent = 'アップロード中...';
+            hideStatus();
+
+            const payload = {
+                retail_price: retailPriceEl.value,
+                purchase_price: purchasePriceEl.value,
+                date: priceDateEl.value,
+                post_to_wp: postToWpEl.checked,
+                post_to_google: postToGoogleEl.checked,
+            };
+
+            try {
+                const res = await fetch(BASE_URL + '/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    showStatus('エラー: ' + data.error, 'error');
+                } else {
+                    const messages = [];
+                    if (data.wordpress) {
+                        if (data.wordpress.success) {
+                            messages.push('WordPress: ' + (data.wordpress.message || '投稿成功'));
+                        } else {
+                            messages.push('WordPress エラー: ' + (data.wordpress.error || '不明なエラー'));
+                        }
+                    }
+                    if (data.google) {
+                        if (data.google.success) {
+                            messages.push('Google: ' + (data.google.message || '投稿成功'));
+                        } else {
+                            messages.push('Google エラー: ' + (data.google.error || '不明なエラー'));
+                        }
+                    }
+                    const allSuccess = Object.values(data).every(r => r.success !== false);
+                    showStatus(messages.join('\n'), allSuccess ? 'success' : 'error');
+                }
+            } catch (e) {
+                showStatus('通信エラーが発生しました: ' + e.message, 'error');
+            } finally {
+                btnUpload.disabled = false;
+                btnUpload.textContent = 'アップロード';
+            }
+        });
+    </script>
+</body>
+</html>
