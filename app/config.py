@@ -24,5 +24,5 @@ class Config:
     # スクレイピング
     GOLD_SOURCE_URL = os.environ.get(
         "GOLD_SOURCE_URL",
-        "https://gold.tanaka.co.jp/commodity/souba/d-gold.php",
+        "https://www.net-japan.co.jp/buy/gold",
     )

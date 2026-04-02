@@ -1,7 +1,10 @@
+import logging
 from datetime import date
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+
+logger = logging.getLogger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/business.manage"]
 
@@ -85,7 +88,7 @@ def delete_todays_posts(
                     name=post_name
                 ).execute()
                 deleted_count += 1
-    except Exception:
-        pass
+    except Exception as e:
+        logger.exception("delete_todays_posts failed: %s", e)
 
     return deleted_count

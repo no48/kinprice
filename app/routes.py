@@ -31,10 +31,20 @@ def upload_price():
     post_to_wp = data.get("post_to_wp", True)
     post_to_google = data.get("post_to_google", True)
 
-    # Input validation: only allow comma-separated numbers
+    # Input validation: retail_price is required; purchase_price is optional
     price_pattern = re.compile(r"^[\d,]+$")
-    if not price_pattern.match(retail_price) or not price_pattern.match(purchase_price):
+    if not price_pattern.match(retail_price):
         return jsonify({"error": "価格は数値のみ入力してください"}), 400
+    if purchase_price and not price_pattern.match(purchase_price):
+        return jsonify({"error": "価格は数値のみ入力してください"}), 400
+    # If purchase_price is omitted, default to retail_price
+    if not purchase_price:
+        purchase_price = retail_price
+
+    # Validate date to prevent XSS (allow digits, slash, colon, space only)
+    date_pattern = re.compile(r"^[\d/:\s]+$")
+    if price_date and not date_pattern.match(price_date):
+        return jsonify({"error": "日付の形式が不正です"}), 400
 
     results = {}
 

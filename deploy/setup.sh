@@ -38,7 +38,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 echo "=== Install Playwright browsers ==="
-playwright install chromium
+export PLAYWRIGHT_BROWSERS_PATH="$APP_DIR/.playwright-browsers"
+mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
+chown www-data:www-data "$PLAYWRIGHT_BROWSERS_PATH"
+sudo -u www-data env PLAYWRIGHT_BROWSERS_PATH="$PLAYWRIGHT_BROWSERS_PATH" \
+    "$APP_DIR/venv/bin/playwright" install chromium
 
 echo "=== .env check ==="
 if [ ! -f "$APP_DIR/.env" ]; then
