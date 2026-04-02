@@ -1,0 +1,21 @@
+[Unit]
+Description=Gold Price Uploader Flask App
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/gold-price-uploader
+Environment="PATH=/opt/gold-price-uploader/venv/bin"
+EnvironmentFile=/opt/gold-price-uploader/.env
+ExecStart=/opt/gold-price-uploader/venv/bin/gunicorn \
+    --workers 2 \
+    --bind 127.0.0.1:8000 \
+    --timeout 60 \
+    wsgi:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
