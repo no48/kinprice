@@ -1,65 +1,83 @@
-import re
 from datetime import date
 from typing import Optional
 
-import requests
-from bs4 import BeautifulSoup
-
-
-def _extract_price(value_text: str) -> str:
-    """価格テキストから数値（カンマ区切り）を抽出する。
-
-    例:
-        '14,589円'        -> '14,589'
-        '27,065 円(+420 円)' -> '27,065'
-    """
-    match = re.search(r"[\d,]+", value_text)
-    if not match:
-        raise ValueError(f"価格の数値が見つかりません: {value_text!r}")
-    return match.group(0)
+from playwright.sync_api import sync_playwright
 
 
 def scrape_gold_price(url: Optional[str] = None, html: Optional[str] = None) -> dict:
-    """田中貴金属のサイトから金価格を取得する。
+    """ネットジャパンのサイトから金の買取価格を取得する。
 
     Args:
-        url: スクレイピング先URL。htmlが指定されている場合は無視。
-        html: テスト用にHTMLを直接渡す場合に使用。
+        url: スクレイピング先URL
+        html: テスト用にHTMLを直接渡す場合（Playwrightを使わずパースのみ）
 
     Returns:
-        dict: retail_price, purchase_price, date を含む辞書
+        dict: retail_price (買取価格), date を含む辞書
     """
-    if html is None:
-        if url is None:
-            raise ValueError("url or html must be provided")
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        html = response.text
+    if html is not None:
+        return _parse_from_html(html)
+
+    if url is None:
+        raise ValueError("url or html must be provided")
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url, wait_until="networkidle")
+
+        # Wait for price data to load
+        page.wait_for_selector("p.text", timeout=15000)
+
+        # Get the date/time
+        date_text = ""
+        all_p = page.query_selector_all("p.text")
+        for el in all_p:
+            text = el.inner_text().strip()
+            if "/" in text and ":" in text:  # matches "2026/04/02 11:30"
+                date_text = text
+                break
+
+        # Get gold price - find the element containing "金" and get the next sibling price
+        price_value = None
+        for i, el in enumerate(all_p):
+            text = el.inner_text().strip()
+            if text == "金":
+                # Next element should be the price
+                if i + 1 < len(all_p):
+                    price_value = all_p[i + 1].inner_text().strip()
+                break
+
+        browser.close()
+
+    if price_value is None:
+        raise ValueError("金価格の取得に失敗しました。ページ構造が変更された可能性があります。")
+
+    return {
+        "retail_price": price_value,
+        "date": date_text,
+    }
+
+
+def _parse_from_html(html: str) -> dict:
+    """テスト用: 固定HTMLからパースする（Playwrightを使わない）"""
+    from bs4 import BeautifulSoup
 
     soup = BeautifulSoup(html, "html.parser")
 
-    retail_price = None
-    purchase_price = None
+    price_value = None
+    date_text = date.today().isoformat()
 
-    # テーブルの行から価格を探す
-    for row in soup.find_all("tr"):
-        th = row.find("th")
-        td = row.find("td")
-        if th and td:
-            header_text = th.get_text(strip=True)
-            value_text = td.get_text(strip=True)
-            if "小売" in header_text:
-                retail_price = _extract_price(value_text)
-            elif "買取" in header_text:
-                purchase_price = _extract_price(value_text)
+    all_p = soup.find_all("p", class_="text")
+    for i, el in enumerate(all_p):
+        text = el.get_text(strip=True)
+        if text == "金" and i + 1 < len(all_p):
+            price_value = all_p[i + 1].get_text(strip=True)
+            break
 
-    if retail_price is None or purchase_price is None:
-        raise ValueError(
-            "金価格の取得に失敗しました。ページ構造が変更された可能性があります。"
-        )
+    if price_value is None:
+        raise ValueError("金価格の取得に失敗しました。")
 
     return {
-        "retail_price": retail_price,
-        "purchase_price": purchase_price,
-        "date": date.today().isoformat(),
+        "retail_price": price_value,
+        "date": date_text,
     }
