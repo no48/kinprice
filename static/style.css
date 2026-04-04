@@ -175,3 +175,43 @@ h1 {
     color: #991b1b;
     border: 1px solid #fca5a5;
 }
+
+.gbp-section {
+    margin-top: 24px;
+    padding: 20px;
+    background-color: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+}
+
+.gbp-section.hidden {
+    display: none;
+}
+
+.gbp-section h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0c4a6e;
+    margin-bottom: 12px;
+}
+
+.gbp-text {
+    padding: 12px;
+    background-color: #ffffff;
+    border: 1px solid #e0f2fe;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #1e293b;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    white-space: pre-line;
+}
+
+.btn-gbp {
+    background-color: #0284c7;
+    color: #ffffff;
+}
+
+.btn-gbp:hover:not(:disabled) {
+    background-color: #0369a1;
+}

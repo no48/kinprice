@@ -10,9 +10,7 @@
     <div class="container">
         <h1>金価格アップロードツール</h1>
 
-        <button id="btn-fetch" class="btn btn-fetch">価格を取得する</button>
-
-        <form id="price-form" class="price-form hidden">
+        <form id="price-form" class="price-form">
             <div class="form-group">
                 <label for="retail-price">小売価格</label>
                 <div class="input-row">
@@ -28,39 +26,36 @@
                 </div>
             </div>
             <div class="form-group">
-                <label for="price-date">取得日時</label>
-                <input type="text" id="price-date" name="date" readonly>
+                <label for="price-date">日付</label>
+                <input type="text" id="price-date" name="date" placeholder="例: 4月4日">
             </div>
 
-            <div class="checkboxes">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="post-to-wp" checked>
-                    WordPressに投稿
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" id="post-to-google" checked>
-                    Googleビジネスに投稿
-                </label>
-            </div>
-
-            <button type="button" id="btn-upload" class="btn btn-upload">アップロード</button>
+            <button type="button" id="btn-upload" class="btn btn-upload">WordPressにアップロード</button>
         </form>
 
         <div id="status" class="status hidden"></div>
+
+        <div id="gbp-section" class="gbp-section hidden">
+            <h2>GBP投稿用テキスト</h2>
+            <div id="gbp-text" class="gbp-text"></div>
+            <button id="btn-gbp" class="btn btn-gbp">コピーしてGBPを開く</button>
+        </div>
     </div>
 
     <script>
         const BASE_URL = "{{ url_for('main.index') }}".replace(/\/$/, '');
 
-        const btnFetch = document.getElementById('btn-fetch');
         const btnUpload = document.getElementById('btn-upload');
-        const priceForm = document.getElementById('price-form');
         const statusEl = document.getElementById('status');
         const retailPriceEl = document.getElementById('retail-price');
         const purchasePriceEl = document.getElementById('purchase-price');
         const priceDateEl = document.getElementById('price-date');
-        const postToWpEl = document.getElementById('post-to-wp');
-        const postToGoogleEl = document.getElementById('post-to-google');
+        const gbpSection = document.getElementById('gbp-section');
+        const gbpTextEl = document.getElementById('gbp-text');
+        const btnGbp = document.getElementById('btn-gbp');
+
+        let gbpText = '';
+        let gbpSearchUrl = '';
 
         function showStatus(message, type) {
             statusEl.textContent = message;
@@ -68,46 +63,17 @@
             statusEl.classList.remove('hidden');
         }
 
-        function hideStatus() {
-            statusEl.classList.add('hidden');
-        }
-
-        btnFetch.addEventListener('click', async () => {
-            btnFetch.disabled = true;
-            btnFetch.textContent = '取得中...';
-            hideStatus();
-
-            try {
-                const res = await fetch(BASE_URL + '/fetch', { method: 'POST' });
-                const data = await res.json();
-
-                if (data.error) {
-                    showStatus('エラー: ' + data.error, 'error');
-                } else {
-                    retailPriceEl.value = data.retail_price || '';
-                    purchasePriceEl.value = data.purchase_price || data.retail_price || '';
-                    priceDateEl.value = data.date || '';
-                    priceForm.classList.remove('hidden');
-                }
-            } catch (e) {
-                showStatus('通信エラーが発生しました: ' + e.message, 'error');
-            } finally {
-                btnFetch.disabled = false;
-                btnFetch.textContent = '価格を取得する';
-            }
-        });
-
         btnUpload.addEventListener('click', async () => {
             btnUpload.disabled = true;
             btnUpload.textContent = 'アップロード中...';
-            hideStatus();
+            statusEl.classList.add('hidden');
+            gbpSection.classList.add('hidden');
 
             const payload = {
                 retail_price: retailPriceEl.value,
                 purchase_price: purchasePriceEl.value,
                 date: priceDateEl.value,
-                post_to_wp: postToWpEl.checked,
-                post_to_google: postToGoogleEl.checked,
+                post_to_wp: true,
             };
 
             try {
@@ -129,21 +95,39 @@
                             messages.push('WordPress エラー: ' + (data.wordpress.error || '不明なエラー'));
                         }
                     }
-                    if (data.google) {
-                        if (data.google.success) {
-                            messages.push('Google: ' + (data.google.message || '投稿成功'));
-                        } else {
-                            messages.push('Google エラー: ' + (data.google.error || '不明なエラー'));
-                        }
+                    const wpSuccess = data.wordpress && data.wordpress.success;
+                    showStatus(messages.join('\n'), wpSuccess ? 'success' : 'error');
+
+                    if (data.gbp_text) {
+                        gbpText = data.gbp_text;
+                        gbpSearchUrl = data.gbp_search_url || '';
+                        gbpTextEl.textContent = gbpText;
+                        gbpSection.classList.remove('hidden');
                     }
-                    const allSuccess = Object.values(data).every(r => r.success !== false);
-                    showStatus(messages.join('\n'), allSuccess ? 'success' : 'error');
                 }
             } catch (e) {
                 showStatus('通信エラーが発生しました: ' + e.message, 'error');
             } finally {
                 btnUpload.disabled = false;
-                btnUpload.textContent = 'アップロード';
+                btnUpload.textContent = 'WordPressにアップロード';
+            }
+        });
+
+        btnGbp.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(gbpText);
+                btnGbp.textContent = 'コピーしました！';
+                setTimeout(() => {
+                    btnGbp.textContent = 'コピーしてGBPを開く';
+                }, 2000);
+            } catch (e) {
+                btnGbp.textContent = 'コピー失敗...';
+                setTimeout(() => {
+                    btnGbp.textContent = 'コピーしてGBPを開く';
+                }, 2000);
+            }
+            if (gbpSearchUrl) {
+                window.open(gbpSearchUrl, '_blank');
             }
         });
     </script>
