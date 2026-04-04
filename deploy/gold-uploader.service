@@ -8,7 +8,6 @@ User=www-data
 Group=www-data
 WorkingDirectory=/opt/gold-price-uploader
 Environment="PATH=/opt/gold-price-uploader/venv/bin"
-Environment="PLAYWRIGHT_BROWSERS_PATH=/opt/gold-price-uploader/.playwright-browsers"
 EnvironmentFile=/opt/gold-price-uploader/.env
 ExecStart=/opt/gold-price-uploader/venv/bin/gunicorn \
     --workers 2 \

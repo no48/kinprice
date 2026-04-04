@@ -13,11 +13,6 @@ apt update && apt upgrade -y
 echo "=== Install packages ==="
 apt install -y python3 python3-venv python3-pip nginx certbot python3-certbot-nginx ufw
 
-# Playwright dependencies (headless Chromium needs these)
-apt install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-    libdbus-1-3 libxkbcommon0 libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 \
-    libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2
-
 echo "=== Firewall ==="
 ufw allow OpenSSH
 ufw allow 'Nginx Full'
@@ -36,13 +31,6 @@ cd "$APP_DIR"
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-
-echo "=== Install Playwright browsers ==="
-export PLAYWRIGHT_BROWSERS_PATH="$APP_DIR/.playwright-browsers"
-mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
-chown www-data:www-data "$PLAYWRIGHT_BROWSERS_PATH"
-sudo -u www-data env PLAYWRIGHT_BROWSERS_PATH="$PLAYWRIGHT_BROWSERS_PATH" \
-    "$APP_DIR/venv/bin/playwright" install chromium
 
 echo "=== .env check ==="
 if [ ! -f "$APP_DIR/.env" ]; then
