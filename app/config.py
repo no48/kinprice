@@ -14,15 +14,8 @@ class Config:
     WP_APP_PASSWORD = os.environ["WP_APP_PASSWORD"]
     WP_PAGE_ID = int(os.environ["WP_PAGE_ID"])
 
-    # Google Business Profile
-    GOOGLE_ACCOUNT_ID = os.environ["GOOGLE_ACCOUNT_ID"]
-    GOOGLE_LOCATION_ID = os.environ["GOOGLE_LOCATION_ID"]
-    GOOGLE_CREDENTIALS_PATH = os.environ.get(
-        "GOOGLE_CREDENTIALS_PATH", "./google-credentials.json"
-    )
-
-    # スクレイピング
-    GOLD_SOURCE_URL = os.environ.get(
-        "GOLD_SOURCE_URL",
-        "https://www.net-japan.co.jp/buy/gold",
+    # GBP
+    GBP_SEARCH_URL = os.environ.get(
+        "GBP_SEARCH_URL",
+        "https://www.google.com/search?q=フリマハイクラス",
     )
