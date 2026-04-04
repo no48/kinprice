@@ -40,70 +40,55 @@ def test_index_contains_title(client, app):
 
 
 # ---------------------------------------------------------------------------
-# /fetch
-# ---------------------------------------------------------------------------
-
-def test_fetch_returns_json(client, app):
-    prefix = get_prefix(app)
-    mock_result = {"retail_price": "26,200", "purchase_price": "25,000", "date": "2026/04/02 11:30"}
-    with patch("app.routes.scrape_gold_price", return_value=mock_result):
-        res = client.post(f"{prefix}/fetch")
-    assert res.status_code == 200
-    data = res.get_json()
-    assert data["retail_price"] == "26,200"
-    assert data["date"] == "2026/04/02 11:30"
-
-
-def test_fetch_returns_error_on_exception(client, app):
-    prefix = get_prefix(app)
-    with patch("app.routes.scrape_gold_price", side_effect=Exception("network error")):
-        res = client.post(f"{prefix}/fetch")
-    assert res.status_code == 500
-    data = res.get_json()
-    assert "error" in data
-    assert "network error" in data["error"]
-
-
-# ---------------------------------------------------------------------------
-# /upload - input validation
+# /upload - validation
 # ---------------------------------------------------------------------------
 
 def test_upload_rejects_non_numeric_retail_price(client, app):
     prefix = get_prefix(app)
-    payload = {"retail_price": "abc", "purchase_price": "25,000", "date": "2026/04/02 11:30"}
+    payload = {"retail_price": "abc", "purchase_price": "25,000", "date": "2026/04/04"}
     res = client.post(
         f"{prefix}/upload",
         data=json.dumps(payload),
         content_type="application/json",
     )
     assert res.status_code == 400
-    data = res.get_json()
-    assert "error" in data
+    assert "error" in res.get_json()
 
 
 def test_upload_rejects_non_numeric_purchase_price(client, app):
     prefix = get_prefix(app)
-    payload = {"retail_price": "26,200", "purchase_price": "invalid!", "date": "2026/04/02 11:30"}
+    payload = {"retail_price": "26,200", "purchase_price": "invalid!", "date": "2026/04/04"}
     res = client.post(
         f"{prefix}/upload",
         data=json.dumps(payload),
         content_type="application/json",
     )
     assert res.status_code == 400
-    data = res.get_json()
-    assert "error" in data
+    assert "error" in res.get_json()
 
 
-def test_upload_accepts_valid_prices(client, app):
+def test_upload_defaults_purchase_price_to_retail(client, app):
     prefix = get_prefix(app)
-    payload = {
-        "retail_price": "26,200",
-        "purchase_price": "25,000",
-        "date": "2026/04/02 11:30",
-        "post_to_wp": True,
-        "post_to_google": False,
-    }
-    wp_result = {"success": True, "message": "WordPress更新成功"}
+    payload = {"retail_price": "26,200", "purchase_price": "", "date": "2026/04/04"}
+    wp_result = {"success": True, "message": "OK"}
+    with patch("app.routes.update_gold_page", return_value=wp_result) as mock_wp:
+        res = client.post(
+            f"{prefix}/upload",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+    call_kwargs = mock_wp.call_args[1]
+    assert call_kwargs["purchase_price"] == "26,200"
+
+
+# ---------------------------------------------------------------------------
+# /upload - WordPress posting
+# ---------------------------------------------------------------------------
+
+def test_upload_posts_to_wordpress(client, app):
+    prefix = get_prefix(app)
+    payload = {"retail_price": "26,200", "purchase_price": "25,000", "date": "2026/04/04"}
+    wp_result = {"success": True, "message": "WordPress更新成功", "link": "https://example.com/gold"}
     with patch("app.routes.update_gold_page", return_value=wp_result):
         res = client.post(
             f"{prefix}/upload",
@@ -112,7 +97,6 @@ def test_upload_accepts_valid_prices(client, app):
         )
     assert res.status_code == 200
     data = res.get_json()
-    assert "wordpress" in data
     assert data["wordpress"]["success"] is True
 
 
@@ -121,9 +105,8 @@ def test_upload_skips_wp_when_flag_false(client, app):
     payload = {
         "retail_price": "26,200",
         "purchase_price": "25,000",
-        "date": "2026/04/02 11:30",
+        "date": "2026/04/04",
         "post_to_wp": False,
-        "post_to_google": False,
     }
     with patch("app.routes.update_gold_page") as mock_wp:
         res = client.post(
@@ -135,23 +118,36 @@ def test_upload_skips_wp_when_flag_false(client, app):
     assert res.status_code == 200
 
 
-def test_upload_google_error_is_captured(client, app):
+# ---------------------------------------------------------------------------
+# /upload - GBP text
+# ---------------------------------------------------------------------------
+
+def test_upload_returns_gbp_text(client, app):
     prefix = get_prefix(app)
-    payload = {
-        "retail_price": "26,200",
-        "purchase_price": "25,000",
-        "date": "2026/04/02 11:30",
-        "post_to_wp": False,
-        "post_to_google": True,
-    }
-    with patch("app.routes.get_service", side_effect=Exception("credentials not found")):
+    payload = {"retail_price": "26,200", "purchase_price": "25,000", "date": "4月4日"}
+    wp_result = {"success": True, "message": "OK"}
+    with patch("app.routes.update_gold_page", return_value=wp_result):
         res = client.post(
             f"{prefix}/upload",
             data=json.dumps(payload),
             content_type="application/json",
         )
-    assert res.status_code == 200
     data = res.get_json()
-    assert "google" in data
-    assert data["google"]["success"] is False
-    assert "Google投稿エラー" in data["google"]["error"]
+    assert "gbp_text" in data
+    assert "25,000" in data["gbp_text"]
+    assert "4月4日" in data["gbp_text"]
+
+
+def test_upload_returns_gbp_search_url(client, app):
+    prefix = get_prefix(app)
+    payload = {"retail_price": "26,200", "purchase_price": "25,000", "date": "4月4日"}
+    wp_result = {"success": True, "message": "OK"}
+    with patch("app.routes.update_gold_page", return_value=wp_result):
+        res = client.post(
+            f"{prefix}/upload",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+    data = res.get_json()
+    assert "gbp_search_url" in data
+    assert "google.com/search" in data["gbp_search_url"]
