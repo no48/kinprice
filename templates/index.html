@@ -10,7 +10,9 @@
     <div class="container">
         <h1>金価格アップロードツール</h1>
 
-        <form id="price-form" class="price-form">
+        <button id="btn-fetch" class="btn btn-fetch">価格を取得する</button>
+
+        <form id="price-form" class="price-form hidden">
             <div class="form-group">
                 <label for="retail-price">小売価格</label>
                 <div class="input-row">
@@ -26,8 +28,8 @@
                 </div>
             </div>
             <div class="form-group">
-                <label for="price-date">日付</label>
-                <input type="text" id="price-date" name="date" placeholder="例: 4月4日">
+                <label for="price-date">取得日時</label>
+                <input type="text" id="price-date" name="date" readonly>
             </div>
 
             <button type="button" id="btn-upload" class="btn btn-upload">WordPressにアップロード</button>
@@ -45,7 +47,9 @@
     <script>
         const BASE_URL = "{{ url_for('main.index') }}".replace(/\/$/, '');
 
+        const btnFetch = document.getElementById('btn-fetch');
         const btnUpload = document.getElementById('btn-upload');
+        const priceForm = document.getElementById('price-form');
         const statusEl = document.getElementById('status');
         const retailPriceEl = document.getElementById('retail-price');
         const purchasePriceEl = document.getElementById('purchase-price');
@@ -62,6 +66,35 @@
             statusEl.className = 'status ' + type;
             statusEl.classList.remove('hidden');
         }
+
+        function hideStatus() {
+            statusEl.classList.add('hidden');
+        }
+
+        btnFetch.addEventListener('click', async () => {
+            btnFetch.disabled = true;
+            btnFetch.textContent = '取得中...';
+            hideStatus();
+
+            try {
+                const res = await fetch(BASE_URL + '/fetch', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.error) {
+                    showStatus('エラー: ' + data.error, 'error');
+                } else {
+                    retailPriceEl.value = data.retail_price || '';
+                    purchasePriceEl.value = data.purchase_price || data.retail_price || '';
+                    priceDateEl.value = data.date || '';
+                    priceForm.classList.remove('hidden');
+                }
+            } catch (e) {
+                showStatus('通信エラーが発生しました: ' + e.message, 'error');
+            } finally {
+                btnFetch.disabled = false;
+                btnFetch.textContent = '価格を取得する';
+            }
+        });
 
         btnUpload.addEventListener('click', async () => {
             btnUpload.disabled = true;

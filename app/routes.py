@@ -1,5 +1,6 @@
 import re
 from flask import Blueprint, current_app, jsonify, render_template, request
+from app.scraper import scrape_gold_price
 from app.wordpress import update_gold_page
 
 bp = Blueprint("main", __name__)
@@ -8,6 +9,16 @@ bp = Blueprint("main", __name__)
 @bp.route("/")
 def index():
     return render_template("index.html")
+
+
+@bp.route("/fetch", methods=["POST"])
+def fetch_price():
+    try:
+        url = current_app.config["GOLD_SOURCE_URL"]
+        result = scrape_gold_price(url=url)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @bp.route("/upload", methods=["POST"])

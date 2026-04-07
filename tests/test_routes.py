@@ -40,6 +40,28 @@ def test_index_contains_title(client, app):
 
 
 # ---------------------------------------------------------------------------
+# /fetch
+# ---------------------------------------------------------------------------
+
+def test_fetch_returns_json(client, app):
+    prefix = get_prefix(app)
+    mock_result = {"retail_price": "26,200", "date": "2026/04/06 09:30"}
+    with patch("app.routes.scrape_gold_price", return_value=mock_result):
+        res = client.post(f"{prefix}/fetch")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["retail_price"] == "26,200"
+
+
+def test_fetch_returns_error_on_exception(client, app):
+    prefix = get_prefix(app)
+    with patch("app.routes.scrape_gold_price", side_effect=Exception("network error")):
+        res = client.post(f"{prefix}/fetch")
+    assert res.status_code == 500
+    assert "error" in res.get_json()
+
+
+# ---------------------------------------------------------------------------
 # /upload - validation
 # ---------------------------------------------------------------------------
 

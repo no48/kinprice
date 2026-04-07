@@ -14,6 +14,12 @@ class Config:
     WP_APP_PASSWORD = os.environ["WP_APP_PASSWORD"]
     WP_PAGE_ID = int(os.environ["WP_PAGE_ID"])
 
+    # スクレイピング
+    GOLD_SOURCE_URL = os.environ.get(
+        "GOLD_SOURCE_URL",
+        "https://www.net-japan.co.jp/precious_metal_partner/",
+    )
+
     # GBP
     GBP_SEARCH_URL = os.environ.get(
         "GBP_SEARCH_URL",
