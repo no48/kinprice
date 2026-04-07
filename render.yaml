@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: gold-price-uploader
+    runtime: docker
+    plan: free
+    envVars:
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: APP_URL_PREFIX
+        value: /gold
+      - key: WP_SITE_URL
+        sync: false
+      - key: WP_USERNAME
+        sync: false
+      - key: WP_APP_PASSWORD
+        sync: false
+      - key: WP_PAGE_ID
+        sync: false
+      - key: GOLD_SOURCE_URL
+        value: https://www.net-japan.co.jp/precious_metal_partner/
+      - key: GBP_SEARCH_URL
+        value: https://www.google.com/search?q=フリマハイクラス
