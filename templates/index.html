@@ -14,14 +14,14 @@
 
         <form id="price-form" class="price-form hidden">
             <div class="form-group">
-                <label for="retail-price">小売価格</label>
+                <label for="retail-price">金インゴット小売価格</label>
                 <div class="input-row">
-                    <input type="text" id="retail-price" name="retail_price" placeholder="例: 26,200">
+                    <input type="text" id="retail-price" name="retail_price" placeholder="例: 26,575">
                     <span class="unit">円/g</span>
                 </div>
             </div>
             <div class="form-group">
-                <label for="purchase-price">買取価格</label>
+                <label for="purchase-price">金インゴット買取価格</label>
                 <div class="input-row">
                     <input type="text" id="purchase-price" name="purchase_price" placeholder="例: 25,000">
                     <span class="unit">円/g</span>
@@ -30,6 +30,24 @@
             <div class="form-group">
                 <label for="price-date">取得日時</label>
                 <input type="text" id="price-date" name="date" readonly>
+            </div>
+
+            <!-- 金スクラップ -->
+            <div id="gold-scrap-section" class="scrap-section hidden">
+                <h2 class="scrap-heading">金スクラップ買取価格</h2>
+                <div class="scrap-grid" id="gold-scrap-grid"></div>
+            </div>
+
+            <!-- Ptスクラップ -->
+            <div id="pt-scrap-section" class="scrap-section hidden">
+                <h2 class="scrap-heading">Ptスクラップ買取価格</h2>
+                <div class="scrap-grid" id="pt-scrap-grid"></div>
+            </div>
+
+            <!-- 銀スクラップ -->
+            <div id="silver-scrap-section" class="scrap-section hidden">
+                <h2 class="scrap-heading">銀スクラップ買取価格</h2>
+                <div class="scrap-grid" id="silver-scrap-grid"></div>
             </div>
 
             <button type="button" id="btn-upload" class="btn btn-upload">WordPressにアップロード</button>
@@ -60,6 +78,7 @@
 
         let gbpText = '';
         let gbpSearchUrl = '';
+        let scrapData = { gold_scrap: {}, pt_scrap: {}, silver_scrap: {} };
 
         function showStatus(message, type) {
             statusEl.textContent = message;
@@ -69,6 +88,24 @@
 
         function hideStatus() {
             statusEl.classList.add('hidden');
+        }
+
+        function renderScrapGrid(gridEl, sectionEl, data) {
+            gridEl.innerHTML = '';
+            const keys = Object.keys(data);
+            if (keys.length === 0) {
+                sectionEl.classList.add('hidden');
+                return;
+            }
+            sectionEl.classList.remove('hidden');
+            keys.forEach(label => {
+                const row = document.createElement('div');
+                row.className = 'scrap-row';
+                row.innerHTML =
+                    '<span class="scrap-label">' + label + '</span>' +
+                    '<span class="scrap-price">' + data[label] + ' <span class="unit">円</span></span>';
+                gridEl.appendChild(row);
+            });
         }
 
         btnFetch.addEventListener('click', async () => {
@@ -87,6 +124,26 @@
                     purchasePriceEl.value = data.purchase_price || data.retail_price || '';
                     priceDateEl.value = data.date || '';
                     priceForm.classList.remove('hidden');
+
+                    scrapData.gold_scrap = data.gold_scrap || {};
+                    scrapData.pt_scrap = data.pt_scrap || {};
+                    scrapData.silver_scrap = data.silver_scrap || {};
+
+                    renderScrapGrid(
+                        document.getElementById('gold-scrap-grid'),
+                        document.getElementById('gold-scrap-section'),
+                        scrapData.gold_scrap
+                    );
+                    renderScrapGrid(
+                        document.getElementById('pt-scrap-grid'),
+                        document.getElementById('pt-scrap-section'),
+                        scrapData.pt_scrap
+                    );
+                    renderScrapGrid(
+                        document.getElementById('silver-scrap-grid'),
+                        document.getElementById('silver-scrap-section'),
+                        scrapData.silver_scrap
+                    );
                 }
             } catch (e) {
                 showStatus('通信エラーが発生しました: ' + e.message, 'error');
@@ -107,6 +164,9 @@
                 purchase_price: purchasePriceEl.value,
                 date: priceDateEl.value,
                 post_to_wp: true,
+                gold_scrap: scrapData.gold_scrap,
+                pt_scrap: scrapData.pt_scrap,
+                silver_scrap: scrapData.silver_scrap,
             };
 
             try {

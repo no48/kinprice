@@ -41,6 +41,11 @@ def upload_price():
     if price_date and not date_pattern.match(price_date):
         return jsonify({"error": "日付の形式が不正です"}), 400
 
+    # スクラップ価格（フォームから送られてくる場合）
+    gold_scrap = data.get("gold_scrap", {})
+    pt_scrap = data.get("pt_scrap", {})
+    silver_scrap = data.get("silver_scrap", {})
+
     results = {}
 
     if post_to_wp:
@@ -55,7 +60,8 @@ def upload_price():
         )
         results["wordpress"] = wp_result
 
-    gbp_text = f"{price_date}本日K18/1g  {purchase_price}円でお買い取りしております。"
+    k18_price = gold_scrap.get("K18", purchase_price)
+    gbp_text = f"{price_date}本日K18/1g  {k18_price}円でお買い取りしております。"
     results["gbp_text"] = gbp_text
     results["gbp_search_url"] = current_app.config["GBP_SEARCH_URL"]
 

@@ -7,10 +7,6 @@
 body {
     font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
     background-color: #f0f2f5;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 24px;
 }
 
@@ -20,7 +16,8 @@ body {
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.10);
     padding: 40px 36px;
     width: 100%;
-    max-width: 480px;
+    max-width: 520px;
+    margin: 0 auto;
 }
 
 h1 {
@@ -214,4 +211,48 @@ h1 {
 
 .btn-gbp:hover:not(:disabled) {
     background-color: #0369a1;
+}
+
+.scrap-section {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    background-color: #fafafa;
+}
+
+.scrap-section.hidden {
+    display: none;
+}
+
+.scrap-heading {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 10px;
+}
+
+.scrap-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+}
+
+.scrap-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.scrap-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.scrap-price {
+    font-size: 0.85rem;
+    color: #111827;
+    font-weight: 500;
 }
