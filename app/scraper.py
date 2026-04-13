@@ -29,14 +29,27 @@ def scrape_gold_price(url: Optional[str] = None, html: Optional[str] = None) -> 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-        page.goto(url, wait_until="networkidle")
+        page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
-        page.wait_for_selector("p.text", state="attached", timeout=15000)
-
-        all_p = page.query_selector_all("p.text")
-        texts = [(el.text_content() or "").strip() for el in all_p]
+        # 価格要素が現れるまで最大30秒ポーリング（wait_for_selectorが可視性で詰まるため回避）
+        texts = []
+        deadline = 30
+        import time
+        start = time.time()
+        while time.time() - start < deadline:
+            elements = page.query_selector_all("p.text")
+            if elements:
+                collected = [(el.text_content() or "").strip() for el in elements]
+                # 「金」ラベルが含まれていれば取得完了とみなす
+                if "金" in collected:
+                    texts = collected
+                    break
+            page.wait_for_timeout(500)
 
         browser.close()
+
+    if not texts:
+        raise ValueError("価格要素の読み込みに失敗しました（タイムアウト）。")
 
     return _parse_texts(texts)
 
