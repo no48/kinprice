@@ -97,9 +97,8 @@
                 row.className = 'scrap-row';
                 row.innerHTML =
                     '<span class="scrap-label">' + SCRAP_LABELS[key] + '</span>' +
-                    '<span class="scrap-ref">参考: ' + data[key] + '円</span>' +
                     '<span class="scrap-input-wrap">' +
-                        '<input type="text" class="scrap-input" data-key="' + key + '" placeholder="' + data[key] + '">' +
+                        '<input type="text" class="scrap-input" data-key="' + key + '" value="' + data[key] + '" data-ref="' + data[key] + '">' +
                         '<span class="unit">円</span>' +
                     '</span>';
                 gridEl.appendChild(row);
@@ -134,10 +133,10 @@
             const below = [];
             document.querySelectorAll('#gold-scrap-grid .scrap-input, #pt-scrap-grid .scrap-input').forEach(input => {
                 const entered = parsePriceNumber(input.value);
-                const ref = parsePriceNumber(input.placeholder);
+                const ref = parsePriceNumber(input.dataset.ref);
                 if (!isNaN(entered) && !isNaN(ref) && entered < ref) {
                     const label = SCRAP_LABELS[input.dataset.key] || input.dataset.key;
-                    below.push(`${label}: ${input.value.trim()} < 参考 ${input.placeholder}`);
+                    below.push(`${label}: ${input.value.trim()} < 参考 ${input.dataset.ref}`);
                 }
             });
             return below;

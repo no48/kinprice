@@ -251,13 +251,6 @@ h1 {
     flex: 1 1 auto;
 }
 
-.scrap-ref {
-    font-size: 0.8rem;
-    color: #9ca3af;
-    flex: 0 0 auto;
-    white-space: nowrap;
-}
-
 .scrap-input-wrap {
     display: flex;
     align-items: center;
