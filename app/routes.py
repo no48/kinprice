@@ -57,6 +57,8 @@ def upload_price():
                 retail_price=retail_price,
                 purchase_price=purchase_price,
                 price_date=price_date,
+                gold_scrap=gold_scrap,
+                pt_scrap=pt_scrap,
             )
             results["wordpress"] = wp_result
 
