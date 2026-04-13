@@ -14,28 +14,23 @@
 
         <form id="price-form" class="price-form hidden">
             <div class="form-group">
-                <label for="retail-price">金インゴット小売価格</label>
-                <div class="input-row">
-                    <input type="text" id="retail-price" name="retail_price" placeholder="例: 26,575">
-                    <span class="unit">円/g</span>
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="purchase-price">金インゴット買取価格</label>
-                <div class="input-row">
-                    <input type="text" id="purchase-price" name="purchase_price" placeholder="例: 25,000">
-                    <span class="unit">円/g</span>
-                </div>
-            </div>
-            <div class="form-group">
                 <label for="price-date">取得日時</label>
                 <input type="text" id="price-date" name="date" readonly>
             </div>
 
-            <!-- 金スクラップ -->
+            <!-- 金インゴット＋スクラップ -->
             <div id="gold-scrap-section" class="scrap-section hidden">
-                <h2 class="scrap-heading">金スクラップ買取価格</h2>
-                <div class="scrap-grid" id="gold-scrap-grid"></div>
+                <h2 class="scrap-heading">金買取価格</h2>
+                <div class="scrap-grid">
+                    <div class="scrap-row">
+                        <span class="scrap-label">金インゴット</span>
+                        <span class="scrap-input-wrap">
+                            <input type="text" id="purchase-price" class="scrap-input" placeholder="例: 25,000">
+                            <span class="unit">円/g</span>
+                        </span>
+                    </div>
+                    <div class="scrap-grid" id="gold-scrap-grid"></div>
+                </div>
             </div>
 
             <!-- Ptスクラップ -->
@@ -63,7 +58,6 @@
         const btnUpload = document.getElementById('btn-upload');
         const priceForm = document.getElementById('price-form');
         const statusEl = document.getElementById('status');
-        const retailPriceEl = document.getElementById('retail-price');
         const purchasePriceEl = document.getElementById('purchase-price');
         const priceDateEl = document.getElementById('price-date');
         const gbpSection = document.getElementById('gbp-section');
@@ -83,6 +77,7 @@
 
         let gbpText = '';
         let gbpSearchUrl = '';
+        let scrapedRetailPrice = '';
 
         function showStatus(message, type) {
             statusEl.textContent = message;
@@ -136,8 +131,9 @@
                 if (data.error) {
                     showStatus('エラー: ' + data.error, 'error');
                 } else {
-                    retailPriceEl.value = data.retail_price || '';
-                    purchasePriceEl.value = data.purchase_price || data.retail_price || '';
+                    scrapedRetailPrice = data.retail_price || '';
+                    purchasePriceEl.value = '';
+                    purchasePriceEl.placeholder = data.purchase_price || data.retail_price || '';
                     priceDateEl.value = data.date || '';
                     priceForm.classList.remove('hidden');
 
@@ -169,8 +165,8 @@
             gbpSection.classList.add('hidden');
 
             const payload = {
-                retail_price: retailPriceEl.value,
-                purchase_price: purchasePriceEl.value,
+                retail_price: scrapedRetailPrice,
+                purchase_price: purchasePriceEl.value.trim() || purchasePriceEl.placeholder,
                 date: priceDateEl.value,
                 post_to_wp: true,
                 gold_scrap: collectScrapValues(document.getElementById('gold-scrap-grid')),
