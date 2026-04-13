@@ -8,7 +8,6 @@ def update_gold_page(
     username: str,
     app_password: str,
     page_id: int,
-    retail_price: str,
     purchase_price: str,
     price_date: str,
     gold_scrap: Optional[dict] = None,
@@ -16,7 +15,7 @@ def update_gold_page(
 ) -> dict:
     """WordPressの固定ページを貴金属価格で更新する。"""
     content = _build_page_content(
-        retail_price, purchase_price, price_date,
+        purchase_price, price_date,
         gold_scrap or {}, pt_scrap or {},
     )
 
@@ -51,7 +50,6 @@ PT_SCRAP_LABELS = {"Pt1000": "Pt1000（インゴット）", "Pt900": "Pt900", "P
 
 
 def _build_page_content(
-    retail_price: str,
     purchase_price: str,
     price_date: str,
     gold_scrap: dict,
@@ -71,7 +69,6 @@ def _build_page_content(
 
     gold_section = f"""  <h3>金買取価格（税込）</h3>
   <table class="gold-price-table">
-    <tr><th>金インゴット小売価格</th><td>{retail_price} 円/g</td></tr>
     <tr><th>金インゴット買取価格</th><td>{purchase_price} 円/g</td></tr>
 {gold_rows}  </table>
 """

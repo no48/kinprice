@@ -65,21 +65,9 @@ def test_fetch_returns_error_on_exception(client, app):
 # /upload - validation
 # ---------------------------------------------------------------------------
 
-def test_upload_rejects_non_numeric_retail_price(client, app):
-    prefix = get_prefix(app)
-    payload = {"retail_price": "abc", "purchase_price": "25,000", "date": "2026/04/04"}
-    res = client.post(
-        f"{prefix}/upload",
-        data=json.dumps(payload),
-        content_type="application/json",
-    )
-    assert res.status_code == 400
-    assert "error" in res.get_json()
-
-
 def test_upload_rejects_non_numeric_purchase_price(client, app):
     prefix = get_prefix(app)
-    payload = {"retail_price": "26,200", "purchase_price": "invalid!", "date": "2026/04/04"}
+    payload = {"purchase_price": "invalid!", "date": "2026/04/04"}
     res = client.post(
         f"{prefix}/upload",
         data=json.dumps(payload),
@@ -89,18 +77,15 @@ def test_upload_rejects_non_numeric_purchase_price(client, app):
     assert "error" in res.get_json()
 
 
-def test_upload_defaults_purchase_price_to_retail(client, app):
+def test_upload_rejects_empty_purchase_price(client, app):
     prefix = get_prefix(app)
-    payload = {"retail_price": "26,200", "purchase_price": "", "date": "2026/04/04"}
-    wp_result = {"success": True, "message": "OK"}
-    with patch("app.routes.update_gold_page", return_value=wp_result) as mock_wp:
-        res = client.post(
-            f"{prefix}/upload",
-            data=json.dumps(payload),
-            content_type="application/json",
-        )
-    call_kwargs = mock_wp.call_args[1]
-    assert call_kwargs["purchase_price"] == "26,200"
+    payload = {"purchase_price": "", "date": "2026/04/04"}
+    res = client.post(
+        f"{prefix}/upload",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    assert res.status_code == 400
 
 
 # ---------------------------------------------------------------------------

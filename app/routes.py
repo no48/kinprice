@@ -26,18 +26,13 @@ def fetch_price():
 def upload_price():
     try:
         data = request.get_json(silent=True) or {}
-        retail_price = (data.get("retail_price") or "").strip()
         purchase_price = (data.get("purchase_price") or "").strip()
         price_date = data.get("date", "")
         post_to_wp = data.get("post_to_wp", True)
 
         price_pattern = re.compile(r"^[\d,]+$")
-        if not price_pattern.match(retail_price):
-            return jsonify({"error": f"小売価格の形式が不正です: '{retail_price}'"}), 400
-        if purchase_price and not price_pattern.match(purchase_price):
+        if not price_pattern.match(purchase_price):
             return jsonify({"error": f"買取価格の形式が不正です: '{purchase_price}'"}), 400
-        if not purchase_price:
-            purchase_price = retail_price
 
         date_pattern = re.compile(r"^[\d/:\s\u4e00-\u9fff]+$")
         if price_date and not date_pattern.match(price_date):
@@ -54,7 +49,6 @@ def upload_price():
                 username=current_app.config["WP_USERNAME"],
                 app_password=current_app.config["WP_APP_PASSWORD"],
                 page_id=current_app.config["WP_PAGE_ID"],
-                retail_price=retail_price,
                 purchase_price=purchase_price,
                 price_date=price_date,
                 gold_scrap=gold_scrap,

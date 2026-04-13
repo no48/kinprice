@@ -83,7 +83,6 @@
 
         let gbpText = '';
         let gbpSearchUrl = '';
-        let scrapedRetailPrice = '';
 
         function showStatus(message, type) {
             statusEl.textContent = message;
@@ -150,7 +149,6 @@
                 if (data.error) {
                     showStatus('エラー: ' + data.error, 'error');
                 } else {
-                    scrapedRetailPrice = data.retail_price || '';
                     purchasePriceEl.value = '';
                     purchasePriceEl.placeholder = data.purchase_price || data.retail_price || '';
                     priceDateEl.value = data.date || '';
@@ -196,7 +194,6 @@
             gbpSection.classList.add('hidden');
 
             const payload = {
-                retail_price: scrapedRetailPrice,
                 purchase_price: purchasePriceEl.value.trim(),
                 date: priceDateEl.value,
                 post_to_wp: true,

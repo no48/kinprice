@@ -15,7 +15,6 @@ def test_update_gold_page_sends_correct_request():
             username="admin",
             app_password="test-pass",
             page_id=123,
-            retail_price="14,589",
             purchase_price="14,200",
             price_date="2026-04-02",
         )
@@ -39,7 +38,6 @@ def test_update_gold_page_handles_api_error():
             username="admin",
             app_password="wrong-pass",
             page_id=123,
-            retail_price="14,589",
             purchase_price="14,200",
             price_date="2026-04-02",
         )
