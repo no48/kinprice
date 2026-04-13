@@ -44,6 +44,10 @@
 
         <div id="status" class="status hidden"></div>
 
+        <div id="source-link-wrap" class="source-link-wrap hidden">
+            取得元: <a id="source-link" href="#" target="_blank" rel="noopener">#</a>
+        </div>
+
         <div id="gbp-section" class="gbp-section hidden">
             <h2>GBP投稿用テキスト</h2>
             <div id="gbp-text" class="gbp-text"></div>
@@ -63,6 +67,8 @@
         const gbpSection = document.getElementById('gbp-section');
         const gbpTextEl = document.getElementById('gbp-text');
         const btnGbp = document.getElementById('btn-gbp');
+        const sourceLinkWrap = document.getElementById('source-link-wrap');
+        const sourceLinkEl = document.getElementById('source-link');
 
         const GOLD_SCRAP_KEYS = ['K24', 'K18', 'K14'];
         const PT_SCRAP_KEYS = ['Pt1000', 'Pt900', 'Pt850'];
@@ -136,6 +142,12 @@
                     purchasePriceEl.placeholder = data.purchase_price || data.retail_price || '';
                     priceDateEl.value = data.date || '';
                     priceForm.classList.remove('hidden');
+
+                    if (data.source_url) {
+                        sourceLinkEl.href = data.source_url;
+                        sourceLinkEl.textContent = data.source_url;
+                        sourceLinkWrap.classList.remove('hidden');
+                    }
 
                     renderScrapGrid(
                         document.getElementById('gold-scrap-grid'),

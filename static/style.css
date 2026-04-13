@@ -280,3 +280,24 @@ h1 {
 .scrap-input::placeholder {
     color: #9ca3af;
 }
+
+.source-link-wrap {
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: #6b7280;
+    text-align: center;
+    word-break: break-all;
+}
+
+.source-link-wrap.hidden {
+    display: none;
+}
+
+.source-link-wrap a {
+    color: #0284c7;
+    text-decoration: underline;
+}
+
+.source-link-wrap a:hover {
+    color: #0369a1;
+}
