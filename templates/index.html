@@ -119,10 +119,23 @@
         function collectScrapValues(gridEl) {
             const result = {};
             gridEl.querySelectorAll('.scrap-input').forEach(input => {
-                const val = input.value.trim() || input.placeholder;
+                const val = input.value.trim();
                 if (val) result[input.dataset.key] = val;
             });
             return result;
+        }
+
+        function findEmptyPriceLabels() {
+            const empty = [];
+            if (!purchasePriceEl.value.trim()) {
+                empty.push('金インゴット買取価格');
+            }
+            document.querySelectorAll('#gold-scrap-grid .scrap-input, #pt-scrap-grid .scrap-input').forEach(input => {
+                if (!input.value.trim()) {
+                    empty.push(SCRAP_LABELS[input.dataset.key] || input.dataset.key);
+                }
+            });
+            return empty;
         }
 
         btnFetch.addEventListener('click', async () => {
@@ -171,6 +184,12 @@
         });
 
         btnUpload.addEventListener('click', async () => {
+            const emptyLabels = findEmptyPriceLabels();
+            if (emptyLabels.length > 0) {
+                alert('以下の価格が未入力です。プレースホルダの値を確認して入力してください:\n\n・' + emptyLabels.join('\n・'));
+                return;
+            }
+
             btnUpload.disabled = true;
             btnUpload.textContent = 'アップロード中...';
             statusEl.classList.add('hidden');
@@ -178,7 +197,7 @@
 
             const payload = {
                 retail_price: scrapedRetailPrice,
-                purchase_price: purchasePriceEl.value.trim() || purchasePriceEl.placeholder,
+                purchase_price: purchasePriceEl.value.trim(),
                 date: priceDateEl.value,
                 post_to_wp: true,
                 gold_scrap: collectScrapValues(document.getElementById('gold-scrap-grid')),
