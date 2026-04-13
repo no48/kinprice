@@ -21,9 +21,13 @@ def test_update_gold_page_sends_correct_request():
         )
 
         assert result["success"] is True
-        mock_post.assert_called_once()
-        call_args = mock_post.call_args
+        assert mock_post.call_count == 2  # clear + write
+        call_args = mock_post.call_args_list[0]
         assert "/wp-json/wp/v2/pages/123" in call_args[0][0]
+        # 最初のリクエストは空contentでクリア
+        assert mock_post.call_args_list[0].kwargs["json"] == {"content": ""}
+        # 2回目は新しいcontent
+        assert mock_post.call_args_list[1].kwargs["json"]["content"] != ""
 
 
 def test_update_gold_page_handles_api_error():

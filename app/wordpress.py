@@ -19,19 +19,28 @@ def update_gold_page(
     )
 
     api_url = f"{site_url.rstrip('/')}/wp-json/wp/v2/pages/{page_id}"
+    auth = HTTPBasicAuth(username, app_password)
 
     try:
+        clear_response = requests.post(
+            api_url,
+            json={"content": ""},
+            auth=auth,
+            timeout=15,
+        )
+        clear_response.raise_for_status()
+
         response = requests.post(
             api_url,
             json={"content": content},
-            auth=HTTPBasicAuth(username, app_password),
+            auth=auth,
             timeout=15,
         )
         response.raise_for_status()
         data = response.json()
         return {
             "success": True,
-            "message": "WordPressの固定ページを更新しました",
+            "message": "WordPressの固定ページを更新しました（クリア後に再書き込み）",
             "link": data.get("link", ""),
         }
     except Exception as e:
