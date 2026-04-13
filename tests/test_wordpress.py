@@ -15,8 +15,9 @@ def test_update_gold_page_sends_correct_request():
             username="admin",
             app_password="test-pass",
             page_id=123,
-            purchase_price="14,200",
             price_date="2026-04-02",
+            gold_scrap={"K24": "25,000", "K18": "19,000", "K14": "14,000"},
+            pt_scrap={"Pt1000": "11,000", "Pt900": "10,000", "Pt850": "9,000"},
         )
 
         assert result["success"] is True
@@ -38,8 +39,9 @@ def test_update_gold_page_handles_api_error():
             username="admin",
             app_password="wrong-pass",
             page_id=123,
-            purchase_price="14,200",
             price_date="2026-04-02",
+            gold_scrap={"K24": "25,000", "K18": "19,000", "K14": "14,000"},
+            pt_scrap={"Pt1000": "11,000", "Pt900": "10,000", "Pt850": "9,000"},
         )
 
         assert result["success"] is False

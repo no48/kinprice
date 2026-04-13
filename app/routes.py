@@ -26,20 +26,20 @@ def fetch_price():
 def upload_price():
     try:
         data = request.get_json(silent=True) or {}
-        purchase_price = (data.get("purchase_price") or "").strip()
         price_date = data.get("date", "")
         post_to_wp = data.get("post_to_wp", True)
 
-        price_pattern = re.compile(r"^[\d,]+$")
-        if not price_pattern.match(purchase_price):
-            return jsonify({"error": f"買取価格の形式が不正です: '{purchase_price}'"}), 400
-
-        date_pattern = re.compile(r"^[\d/:\s\u4e00-\u9fff]+$")
-        if price_date and not date_pattern.match(price_date):
-            return jsonify({"error": "日付の形式が不正です"}), 400
-
         gold_scrap = data.get("gold_scrap", {}) or {}
         pt_scrap = data.get("pt_scrap", {}) or {}
+
+        price_pattern = re.compile(r"^[\d,]+$")
+        for key, val in list(gold_scrap.items()) + list(pt_scrap.items()):
+            if not price_pattern.match(str(val)):
+                return jsonify({"error": f"{key} の価格形式が不正です: '{val}'"}), 400
+
+        date_pattern = re.compile(r"^[\d/:\s\u4e00-\u9fff年月日]+$")
+        if price_date and not date_pattern.match(price_date):
+            return jsonify({"error": "日付の形式が不正です"}), 400
 
         results = {}
 
@@ -49,14 +49,13 @@ def upload_price():
                 username=current_app.config["WP_USERNAME"],
                 app_password=current_app.config["WP_APP_PASSWORD"],
                 page_id=current_app.config["WP_PAGE_ID"],
-                purchase_price=purchase_price,
                 price_date=price_date,
                 gold_scrap=gold_scrap,
                 pt_scrap=pt_scrap,
             )
             results["wordpress"] = wp_result
 
-        k18_price = gold_scrap.get("K18", purchase_price)
+        k18_price = gold_scrap.get("K18", "")
         gbp_text = f"{price_date}本日K18/1g  {k18_price}円でお買い取りしております。"
         results["gbp_text"] = gbp_text
         results["gbp_search_url"] = current_app.config["GBP_SEARCH_URL"]

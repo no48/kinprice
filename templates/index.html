@@ -18,19 +18,10 @@
                 <input type="text" id="price-date" name="date" readonly>
             </div>
 
-            <!-- 金インゴット＋スクラップ -->
+            <!-- 金スクラップ -->
             <div id="gold-scrap-section" class="scrap-section hidden">
                 <h2 class="scrap-heading">金買取価格</h2>
-                <div class="scrap-grid">
-                    <div class="scrap-row">
-                        <span class="scrap-label">金インゴット</span>
-                        <span class="scrap-input-wrap">
-                            <input type="text" id="purchase-price" class="scrap-input" placeholder="例: 25,000">
-                            <span class="unit">円/g</span>
-                        </span>
-                    </div>
-                    <div class="scrap-grid" id="gold-scrap-grid"></div>
-                </div>
+                <div class="scrap-grid" id="gold-scrap-grid"></div>
             </div>
 
             <!-- Ptスクラップ -->
@@ -62,7 +53,6 @@
         const btnUpload = document.getElementById('btn-upload');
         const priceForm = document.getElementById('price-form');
         const statusEl = document.getElementById('status');
-        const purchasePriceEl = document.getElementById('purchase-price');
         const priceDateEl = document.getElementById('price-date');
         const gbpSection = document.getElementById('gbp-section');
         const gbpTextEl = document.getElementById('gbp-text');
@@ -126,15 +116,30 @@
 
         function findEmptyPriceLabels() {
             const empty = [];
-            if (!purchasePriceEl.value.trim()) {
-                empty.push('金インゴット買取価格');
-            }
             document.querySelectorAll('#gold-scrap-grid .scrap-input, #pt-scrap-grid .scrap-input').forEach(input => {
                 if (!input.value.trim()) {
                     empty.push(SCRAP_LABELS[input.dataset.key] || input.dataset.key);
                 }
             });
             return empty;
+        }
+
+        function parsePriceNumber(s) {
+            if (!s) return NaN;
+            return parseFloat(String(s).replace(/,/g, ''));
+        }
+
+        function findBelowReferenceLabels() {
+            const below = [];
+            document.querySelectorAll('#gold-scrap-grid .scrap-input, #pt-scrap-grid .scrap-input').forEach(input => {
+                const entered = parsePriceNumber(input.value);
+                const ref = parsePriceNumber(input.placeholder);
+                if (!isNaN(entered) && !isNaN(ref) && entered < ref) {
+                    const label = SCRAP_LABELS[input.dataset.key] || input.dataset.key;
+                    below.push(`${label}: ${input.value.trim()} < 参考 ${input.placeholder}`);
+                }
+            });
+            return below;
         }
 
         btnFetch.addEventListener('click', async () => {
@@ -149,8 +154,6 @@
                 if (data.error) {
                     showStatus('エラー: ' + data.error, 'error');
                 } else {
-                    purchasePriceEl.value = '';
-                    purchasePriceEl.placeholder = data.purchase_price || data.retail_price || '';
                     priceDateEl.value = data.date || '';
                     priceForm.classList.remove('hidden');
 
@@ -188,13 +191,18 @@
                 return;
             }
 
+            const belowLabels = findBelowReferenceLabels();
+            if (belowLabels.length > 0) {
+                const ok = confirm('以下の価格が参考値（プレースホルダ）より低いです。続行しますか？\n\n・' + belowLabels.join('\n・'));
+                if (!ok) return;
+            }
+
             btnUpload.disabled = true;
             btnUpload.textContent = 'アップロード中...';
             statusEl.classList.add('hidden');
             gbpSection.classList.add('hidden');
 
             const payload = {
-                purchase_price: purchasePriceEl.value.trim(),
                 date: priceDateEl.value,
                 post_to_wp: true,
                 gold_scrap: collectScrapValues(document.getElementById('gold-scrap-grid')),
