@@ -31,10 +31,10 @@ def scrape_gold_price(url: Optional[str] = None, html: Optional[str] = None) -> 
         page = browser.new_page()
         page.goto(url, wait_until="networkidle")
 
-        page.wait_for_selector("p.text", timeout=15000)
+        page.wait_for_selector("p.text", state="attached", timeout=15000)
 
         all_p = page.query_selector_all("p.text")
-        texts = [el.inner_text().strip() for el in all_p]
+        texts = [(el.text_content() or "").strip() for el in all_p]
 
         browser.close()
 
