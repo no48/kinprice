@@ -44,12 +44,6 @@
                 <div class="scrap-grid" id="pt-scrap-grid"></div>
             </div>
 
-            <!-- 銀スクラップ -->
-            <div id="silver-scrap-section" class="scrap-section hidden">
-                <h2 class="scrap-heading">銀スクラップ買取価格</h2>
-                <div class="scrap-grid" id="silver-scrap-grid"></div>
-            </div>
-
             <button type="button" id="btn-upload" class="btn btn-upload">WordPressにアップロード</button>
         </form>
 
@@ -76,9 +70,19 @@
         const gbpTextEl = document.getElementById('gbp-text');
         const btnGbp = document.getElementById('btn-gbp');
 
+        const GOLD_SCRAP_KEYS = ['K24', 'K18', 'K14'];
+        const PT_SCRAP_KEYS = ['Pt1000', 'Pt900', 'Pt850'];
+        const SCRAP_LABELS = {
+            'K24': 'K24（インゴット）',
+            'K18': 'K18',
+            'K14': 'K14',
+            'Pt1000': 'Pt1000（インゴット）',
+            'Pt900': 'Pt900',
+            'Pt850': 'Pt850',
+        };
+
         let gbpText = '';
         let gbpSearchUrl = '';
-        let scrapData = { gold_scrap: {}, pt_scrap: {}, silver_scrap: {} };
 
         function showStatus(message, type) {
             statusEl.textContent = message;
@@ -90,22 +94,34 @@
             statusEl.classList.add('hidden');
         }
 
-        function renderScrapGrid(gridEl, sectionEl, data) {
+        function renderScrapGrid(gridEl, sectionEl, data, allowedKeys) {
             gridEl.innerHTML = '';
-            const keys = Object.keys(data);
-            if (keys.length === 0) {
+            const visibleKeys = allowedKeys.filter(k => data[k] !== undefined);
+            if (visibleKeys.length === 0) {
                 sectionEl.classList.add('hidden');
                 return;
             }
             sectionEl.classList.remove('hidden');
-            keys.forEach(label => {
+            visibleKeys.forEach(key => {
                 const row = document.createElement('div');
                 row.className = 'scrap-row';
                 row.innerHTML =
-                    '<span class="scrap-label">' + label + '</span>' +
-                    '<span class="scrap-price">' + data[label] + ' <span class="unit">円</span></span>';
+                    '<span class="scrap-label">' + SCRAP_LABELS[key] + '</span>' +
+                    '<span class="scrap-input-wrap">' +
+                        '<input type="text" class="scrap-input" data-key="' + key + '" placeholder="' + data[key] + '">' +
+                        '<span class="unit">円</span>' +
+                    '</span>';
                 gridEl.appendChild(row);
             });
+        }
+
+        function collectScrapValues(gridEl) {
+            const result = {};
+            gridEl.querySelectorAll('.scrap-input').forEach(input => {
+                const val = input.value.trim() || input.placeholder;
+                if (val) result[input.dataset.key] = val;
+            });
+            return result;
         }
 
         btnFetch.addEventListener('click', async () => {
@@ -125,24 +141,17 @@
                     priceDateEl.value = data.date || '';
                     priceForm.classList.remove('hidden');
 
-                    scrapData.gold_scrap = data.gold_scrap || {};
-                    scrapData.pt_scrap = data.pt_scrap || {};
-                    scrapData.silver_scrap = data.silver_scrap || {};
-
                     renderScrapGrid(
                         document.getElementById('gold-scrap-grid'),
                         document.getElementById('gold-scrap-section'),
-                        scrapData.gold_scrap
+                        data.gold_scrap || {},
+                        GOLD_SCRAP_KEYS
                     );
                     renderScrapGrid(
                         document.getElementById('pt-scrap-grid'),
                         document.getElementById('pt-scrap-section'),
-                        scrapData.pt_scrap
-                    );
-                    renderScrapGrid(
-                        document.getElementById('silver-scrap-grid'),
-                        document.getElementById('silver-scrap-section'),
-                        scrapData.silver_scrap
+                        data.pt_scrap || {},
+                        PT_SCRAP_KEYS
                     );
                 }
             } catch (e) {
@@ -164,9 +173,8 @@
                 purchase_price: purchasePriceEl.value,
                 date: priceDateEl.value,
                 post_to_wp: true,
-                gold_scrap: scrapData.gold_scrap,
-                pt_scrap: scrapData.pt_scrap,
-                silver_scrap: scrapData.silver_scrap,
+                gold_scrap: collectScrapValues(document.getElementById('gold-scrap-grid')),
+                pt_scrap: collectScrapValues(document.getElementById('pt-scrap-grid')),
             };
 
             try {

@@ -232,27 +232,51 @@ h1 {
 }
 
 .scrap-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .scrap-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 0;
-    border-bottom: 1px solid #f0f0f0;
+    gap: 12px;
 }
 
 .scrap-label {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: #4b5563;
+    flex: 0 0 auto;
 }
 
-.scrap-price {
-    font-size: 0.85rem;
+.scrap-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    max-width: 200px;
+    justify-content: flex-end;
+}
+
+.scrap-input {
+    width: 140px;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    text-align: right;
+    background-color: #fff;
     color: #111827;
-    font-weight: 500;
+}
+
+.scrap-input:focus {
+    outline: none;
+    border-color: #d4af37;
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15);
+}
+
+.scrap-input::placeholder {
+    color: #9ca3af;
 }
