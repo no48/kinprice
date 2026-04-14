@@ -97,6 +97,7 @@
                 row.className = 'scrap-row';
                 row.innerHTML =
                     '<span class="scrap-label">' + SCRAP_LABELS[key] + '</span>' +
+                    '<span class="scrap-ref">参考: ' + data[key] + '円</span>' +
                     '<span class="scrap-input-wrap">' +
                         '<input type="text" class="scrap-input" data-key="' + key + '" value="' + data[key] + '" data-ref="' + data[key] + '">' +
                         '<span class="unit">円</span>' +
