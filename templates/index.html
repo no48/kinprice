@@ -165,10 +165,15 @@
                         sourceLinkWrap.classList.remove('hidden');
                     }
 
+                    const goldScrap = Object.assign({}, data.gold_scrap || {});
+                    if (data.retail_price) {
+                        goldScrap.K24 = data.retail_price;
+                    }
+
                     renderScrapGrid(
                         document.getElementById('gold-scrap-grid'),
                         document.getElementById('gold-scrap-section'),
-                        data.gold_scrap || {},
+                        goldScrap,
                         GOLD_SCRAP_KEYS
                     );
                     renderScrapGrid(
