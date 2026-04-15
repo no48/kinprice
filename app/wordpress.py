@@ -61,27 +61,30 @@ PRICE_ROWS = [
 
 HIGHLIGHT_KEYS = {"K18"}
 
-COIN_ROWS_HTML = """      <tr>
-        <th>天皇陛下御即位記念10万円金貨</th>
-        <td>680,400円</td>
-      </tr>
-      <tr>
-        <th>天皇陛下御在位60年記念10万円金貨</th>
-        <td>453,600円</td>
-      </tr>
-      <tr>
-        <th>皇太子殿下御成婚記念5万円金貨</th>
-        <td>408,240円</td>
-      </tr>
-      <tr>
-        <th>天皇陛下御在位記念1万円金貨</th>
-        <td>453,600円</td>
-      </tr>
-      <tr>
-        <th>長野五輪冬季大会記念1万円金貨</th>
-        <td>353,808円</td>
-      </tr>
-"""
+COIN_DEFS = [
+    ("天皇陛下御即位記念10万円金貨", 30.0),
+    ("天皇陛下御在位60年記念10万円金貨", 20.0),
+    ("皇太子殿下御成婚記念5万円金貨", 18.0),
+    ("天皇陛下御在位記念1万円金貨", 20.0),
+    ("長野五輪冬季大会記念1万円金貨", 15.6),
+]
+
+
+def _build_coin_rows(k22_price: str) -> str:
+    """K22単価 × 重量で金貨価格を計算する。K22がなければ空文字。"""
+    if not k22_price:
+        return ""
+    try:
+        unit = float(str(k22_price).replace(",", ""))
+    except ValueError:
+        return ""
+    lines = []
+    for name, weight in COIN_DEFS:
+        price = int(round(unit * weight))
+        lines.append(
+            f"      <tr>\n        <th>{name}</th>\n        <td>{price:,}円</td>\n      </tr>"
+        )
+    return "\n".join(lines) + "\n"
 
 
 def _format_date_ja(price_date: str) -> str:
@@ -109,6 +112,8 @@ def _build_page_content(
         rows.append(f"  <tr>\n    <th>{label}</th>\n    <td>{td}</td>\n  </tr>")
     price_rows_html = "\n".join(rows)
 
+    coin_rows_html = _build_coin_rows(gold_scrap.get("K22", ""))
+
     formatted_date = _format_date_ja(price_date)
 
     return f"""<div class="top_gold_wrap">
@@ -126,7 +131,7 @@ def _build_page_content(
     </table>
     <table>
       <tbody>
-{COIN_ROWS_HTML}    </tbody>
+{coin_rows_html}    </tbody>
     </table>
   </div>
 </div>
