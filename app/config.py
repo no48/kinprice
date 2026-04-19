@@ -25,3 +25,7 @@ class Config:
         "GBP_SEARCH_URL",
         "https://www.google.com/search?q=フリマハイクラス",
     )
+
+    # Basic認証
+    BASIC_AUTH_USERNAME = os.environ["BASIC_AUTH_USERNAME"]
+    BASIC_AUTH_PASSWORD = os.environ["BASIC_AUTH_PASSWORD"]
