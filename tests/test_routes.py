@@ -1,4 +1,5 @@
 """Tests for Flask routes."""
+import base64
 import json
 from unittest.mock import patch
 
@@ -17,6 +18,14 @@ def app():
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture(autouse=True)
+def auth_headers(client):
+    """全てのテストリクエストにBasic認証ヘッダを自動付与する。"""
+    token = base64.b64encode(b"testuser:testpass").decode()
+    client.environ_base["HTTP_AUTHORIZATION"] = f"Basic {token}"
+    return client
 
 
 def get_prefix(app):
