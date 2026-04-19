@@ -1,9 +1,16 @@
 import re
 from flask import Blueprint, current_app, jsonify, render_template, request
+from app.auth import auth
 from app.scraper import scrape_gold_price
 from app.wordpress import update_gold_page
 
 bp = Blueprint("main", __name__)
+
+
+@bp.before_request
+@auth.login_required
+def require_auth():
+    pass
 
 
 @bp.route("/")
