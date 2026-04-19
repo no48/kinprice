@@ -51,7 +51,6 @@ def upload_price():
                 username=current_app.config["WP_USERNAME"],
                 app_password=current_app.config["WP_APP_PASSWORD"],
                 page_id=current_app.config["WP_PAGE_ID"],
-                price_date=price_date,
                 gold_scrap=gold_scrap,
                 pt_scrap=pt_scrap,
             )

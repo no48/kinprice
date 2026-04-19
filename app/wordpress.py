@@ -1,7 +1,9 @@
-import re
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import requests
 from requests.auth import HTTPBasicAuth
+
+JST = timezone(timedelta(hours=9))
 
 
 def update_gold_page(
@@ -9,13 +11,12 @@ def update_gold_page(
     username: str,
     app_password: str,
     page_id: int,
-    price_date: str,
     gold_scrap: Optional[dict] = None,
     pt_scrap: Optional[dict] = None,
 ) -> dict:
     """WordPressの固定ページを貴金属価格で更新する。"""
     content = _build_page_content(
-        price_date, gold_scrap or {}, pt_scrap or {},
+        gold_scrap or {}, pt_scrap or {},
     )
 
     api_url = f"{site_url.rstrip('/')}/wp-json/wp/v2/pages/{page_id}"
@@ -87,17 +88,12 @@ def _build_coin_rows(k22_price: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _format_date_ja(price_date: str) -> str:
-    """'2026/04/12 09:30' や '2026-04-12' を '2026年04月12日' に変換。"""
-    m = re.match(r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", price_date or "")
-    if not m:
-        return price_date
-    y, mo, d = m.group(1), m.group(2).zfill(2), m.group(3).zfill(2)
-    return f"{y}年{mo}月{d}日"
+def _today_jst_ja() -> str:
+    """JSTの今日の日付を '2026年04月19日' 形式で返す。"""
+    return datetime.now(JST).strftime("%Y年%m月%d日")
 
 
 def _build_page_content(
-    price_date: str,
     gold_scrap: dict,
     pt_scrap: dict,
 ) -> str:
@@ -114,7 +110,7 @@ def _build_page_content(
 
     coin_rows_html = _build_coin_rows(gold_scrap.get("K22", ""))
 
-    formatted_date = _format_date_ja(price_date)
+    formatted_date = _today_jst_ja()
 
     return f"""<div class="top_gold_wrap">
   <div class="hl">
