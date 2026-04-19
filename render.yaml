@@ -20,3 +20,7 @@ services:
         value: https://www.net-japan.co.jp/precious_metal_partner/
       - key: GBP_SEARCH_URL
         value: https://www.google.com/search?q=フリマハイクラス
+      - key: BASIC_AUTH_USERNAME
+        sync: false
+      - key: BASIC_AUTH_PASSWORD
+        sync: false
