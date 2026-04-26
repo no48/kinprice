@@ -1,7 +1,6 @@
-from datetime import date
 from typing import Optional
 
-from playwright.sync_api import sync_playwright
+import requests
 
 
 # スクラップ価格のラベル定義
@@ -9,16 +8,27 @@ GOLD_SCRAP_LABELS = ["K24", "K22", "K21.6", "K20", "K18", "K14", "K10", "K9"]
 PT_SCRAP_LABELS = ["Pt1000", "Pt950", "Pt900", "Pt850"]
 SILVER_SCRAP_LABELS = ["Sv1000", "Sv925"]
 
+# ネットジャパンの内部API（Nuxtフロントが利用する公開エンドポイント）
+_API_URL = "https://studio-api-proxy-rajzgb4wwq-an.a.run.app/"
+_API_ID = "1fd69ca0358b48af9ce7"
+_API_REFERER = "https://www.net-japan.co.jp/"
+
+_GOLD_API_KEYS = {
+    "K24": "k24", "K22": "k22", "K21.6": "k21_6", "K20": "k20",
+    "K18": "k18", "K14": "k14", "K10": "k10", "K9": "k9",
+}
+_PT_API_KEYS = {"Pt1000": "pt1000", "Pt950": "pt950", "Pt900": "pt900", "Pt850": "pt850"}
+_SILVER_API_KEYS = {"Sv1000": "sv1000", "Sv925": "sv925"}
+
 
 def scrape_gold_price(url: Optional[str] = None, html: Optional[str] = None) -> dict:
-    """ネットジャパンのサイトから貴金属の買取価格を取得する。
+    """ネットジャパンの貴金属買取価格を取得する。
 
-    Args:
-        url: スクレイピング先URL
-        html: テスト用にHTMLを直接渡す場合（Playwrightを使わずパースのみ）
+    通常は内部JSON APIを直接叩いて取得する（数百ms）。
+    htmlを渡した場合はパースのみ行う（テスト用）。
 
     Returns:
-        dict: retail_price, date, gold_scrap, pt_scrap, silver_scrap を含む辞書
+        dict: retail_price, date, gold_scrap, pt_scrap, silver_scrap
     """
     if html is not None:
         return _parse_from_html(html)
@@ -26,36 +36,55 @@ def scrape_gold_price(url: Optional[str] = None, html: Optional[str] = None) -> 
     if url is None:
         raise ValueError("url or html must be provided")
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(url, wait_until="domcontentloaded", timeout=30000)
+    return _fetch_from_api()
 
-        # 価格要素が現れるまで最大30秒ポーリング（wait_for_selectorが可視性で詰まるため回避）
-        texts = []
-        deadline = 30
-        import time
-        start = time.time()
-        while time.time() - start < deadline:
-            elements = page.query_selector_all("p.text")
-            if elements:
-                collected = [(el.text_content() or "").strip() for el in elements]
-                # 「金」ラベルが含まれていれば取得完了とみなす
-                if "金" in collected:
-                    texts = collected
-                    break
-            page.wait_for_timeout(500)
 
-        browser.close()
+def _fetch_from_api() -> dict:
+    """内部JSON APIから価格データを取得し、整形済みdictで返す。"""
+    response = requests.post(
+        _API_URL,
+        params={"api_id": _API_ID},
+        json={"api_id": _API_ID, "params": {}},
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Referer": _API_REFERER,
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+    payload = response.json()
 
-    if not texts:
-        raise ValueError("価格要素の読み込みに失敗しました（タイムアウト）。")
+    contents = payload.get("contents") or []
+    if not contents:
+        raise ValueError("APIレスポンスにcontentsが含まれていません。")
+    data = contents[0]
 
-    return _parse_texts(texts)
+    retail_price = (data.get("highlight") or {}).get("gold", {}).get("price")
+    if not retail_price:
+        raise ValueError("金価格の取得に失敗しました。APIレスポンス構造が変更された可能性があります。")
+
+    scrap = data.get("scrapItems") or {}
+    return {
+        "retail_price": retail_price,
+        "date": data.get("marketDate", ""),
+        "gold_scrap": _map_scrap(scrap.get("gold") or {}, _GOLD_API_KEYS),
+        "pt_scrap": _map_scrap(scrap.get("pt") or {}, _PT_API_KEYS),
+        "silver_scrap": _map_scrap(scrap.get("silver") or {}, _SILVER_API_KEYS),
+    }
+
+
+def _map_scrap(section: dict, key_map: dict[str, str]) -> dict:
+    """APIのscrapItemsセクションを {ラベル: 価格} に変換する。"""
+    return {
+        label: section[api_key]
+        for label, api_key in key_map.items()
+        if section.get(api_key)
+    }
 
 
 def _parse_texts(texts: list[str]) -> dict:
-    """p.text要素のテキストリストから全価格を抽出する。"""
+    """p.text要素のテキストリストから全価格を抽出する（旧HTMLパース用、テスト互換）。"""
     result = {
         "retail_price": None,
         "date": "",
@@ -68,30 +97,22 @@ def _parse_texts(texts: list[str]) -> dict:
     while i < len(texts):
         text = texts[i]
 
-        # 日付（例: "2026/04/10 09:30"）
         if "/" in text and ":" in text and len(text) <= 20:
             import re
             if re.match(r"\d{4}/\d{2}/\d{2} \d{2}:\d{2}", text):
                 result["date"] = text
 
-        # 金インゴット価格
         if text == "金" and i + 1 < len(texts):
             result["retail_price"] = texts[i + 1]
 
-        # 金スクラップ
         if text == "金スクラップ":
-            scrap = _extract_scrap_prices(texts, i, GOLD_SCRAP_LABELS)
-            result["gold_scrap"] = scrap
+            result["gold_scrap"] = _extract_scrap_prices(texts, i, GOLD_SCRAP_LABELS)
 
-        # Ptスクラップ
         if text == "Ptスクラップ":
-            scrap = _extract_scrap_prices(texts, i, PT_SCRAP_LABELS)
-            result["pt_scrap"] = scrap
+            result["pt_scrap"] = _extract_scrap_prices(texts, i, PT_SCRAP_LABELS)
 
-        # 銀スクラップ
         if text == "銀スクラップ":
-            scrap = _extract_scrap_prices(texts, i, SILVER_SCRAP_LABELS)
-            result["silver_scrap"] = scrap
+            result["silver_scrap"] = _extract_scrap_prices(texts, i, SILVER_SCRAP_LABELS)
 
         i += 1
 
@@ -106,7 +127,6 @@ def _extract_scrap_prices(texts: list[str], start_idx: int, labels: list[str]) -
 
     ページ構造: [セクション名] [ラベル1] [ラベル2] ... [買取価格（税込）] [価格1] [円] [価格2] [円] ...
     """
-    # 「買取価格（税込）」の位置を探す
     price_start = None
     for j in range(start_idx + 1, min(start_idx + len(labels) + 5, len(texts))):
         if texts[j] == "買取価格（税込）":
@@ -116,7 +136,6 @@ def _extract_scrap_prices(texts: list[str], start_idx: int, labels: list[str]) -
     if price_start is None:
         return {}
 
-    # 価格を取得（「円」を飛ばしながら）
     prices = []
     j = price_start
     while j < len(texts) and len(prices) < len(labels):
@@ -128,7 +147,7 @@ def _extract_scrap_prices(texts: list[str], start_idx: int, labels: list[str]) -
 
 
 def _parse_from_html(html: str) -> dict:
-    """テスト用: 固定HTMLからパースする（Playwrightを使わない）"""
+    """テスト用: 固定HTMLからパースする。"""
     from bs4 import BeautifulSoup
 
     soup = BeautifulSoup(html, "html.parser")
@@ -138,7 +157,4 @@ def _parse_from_html(html: str) -> dict:
     if not texts:
         raise ValueError("金価格の取得に失敗しました。")
 
-    try:
-        return _parse_texts(texts)
-    except ValueError:
-        raise
+    return _parse_texts(texts)
