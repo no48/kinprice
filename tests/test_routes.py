@@ -114,7 +114,7 @@ def test_fetch_returns_error_on_exception(client, app):
 
 def _valid_payload(**overrides):
     payload = {
-        "date": "2026/04/04",
+        "date": "2026年05月02日",
         "gold_scrap": {"K24": "25,000", "K18": "19,000", "K14": "14,000"},
         "pt_scrap": {"Pt1000": "11,000", "Pt900": "10,000", "Pt850": "9,000"},
     }
@@ -171,7 +171,7 @@ def test_upload_skips_wp_when_flag_false(client, app):
 
 def test_upload_returns_gbp_text(client, app):
     prefix = get_prefix(app)
-    payload = _valid_payload(date="4月4日")
+    payload = _valid_payload(date="2026年05月02日")
     wp_result = {"success": True, "message": "OK"}
     with patch("app.routes.update_gold_page", return_value=wp_result):
         res = client.post(
@@ -182,7 +182,21 @@ def test_upload_returns_gbp_text(client, app):
     data = res.get_json()
     assert "gbp_text" in data
     assert "19,000" in data["gbp_text"]
-    assert "4月4日" in data["gbp_text"]
+    assert "2026年05月02日" in data["gbp_text"]
+
+
+def test_upload_passes_date_to_wordpress(client, app):
+    prefix = get_prefix(app)
+    payload = _valid_payload(date="2026年05月02日")
+    wp_result = {"success": True, "message": "OK"}
+    with patch("app.routes.update_gold_page", return_value=wp_result) as mock_wp:
+        client.post(
+            f"{prefix}/upload",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        # update_gold_page が page_date="2026年05月02日" で呼ばれること
+        assert mock_wp.call_args.kwargs["page_date"] == "2026年05月02日"
 
 
 def test_upload_returns_gbp_search_url(client, app):

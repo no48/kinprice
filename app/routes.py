@@ -67,6 +67,7 @@ def upload_price():
                 page_id=current_app.config["WP_PAGE_ID"],
                 gold_scrap=gold_scrap,
                 pt_scrap=pt_scrap,
+                page_date=price_date,
             )
             results["wordpress"] = wp_result
 
