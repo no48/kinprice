@@ -54,12 +54,50 @@ def test_index_contains_title(client, app):
 
 def test_fetch_returns_json(client, app):
     prefix = get_prefix(app)
-    mock_result = {"retail_price": "26,200", "date": "2026/04/06 09:30"}
-    with patch("app.routes.scrape_gold_price", return_value=mock_result):
+    mock_raw = {
+        "retail_price": "26,200",
+        "date": "2026/04/06 09:30",
+        "gold_scrap": {"K24": "25,000", "K22": "22,000", "K18": "19,000", "K14": "14,000"},
+        "pt_scrap":   {"Pt1000": "11,000", "Pt900": "10,000", "Pt850": "9,000"},
+    }
+    with patch("app.routes.scrape_gold_price", return_value=mock_raw):
         res = client.post(f"{prefix}/fetch")
     assert res.status_code == 200
     data = res.get_json()
-    assert data["retail_price"] == "26,200"
+    assert "reference" in data
+    assert "adjusted" in data
+    assert "date" in data
+
+
+def test_fetch_returns_date_reference_and_adjusted(client, app):
+    prefix = get_prefix(app)
+    mock_raw = {
+        "retail_price": "26,352",
+        "date": "2026/04/24 09:30",
+        "gold_scrap": {"K24": "25,614", "K22": "23,216", "K18": "19,553", "K14": "14,494"},
+        "pt_scrap":   {"Pt1000": "10,849", "Pt950": "10,290", "Pt900": "9,921", "Pt850": "9,362"},
+        "silver_scrap": {"Sv1000": "392", "Sv925": "352"},
+    }
+    with patch("app.routes.scrape_gold_price", return_value=mock_raw):
+        res = client.post(f"{prefix}/fetch")
+    assert res.status_code == 200
+    data = res.get_json()
+    # 当日のJST日付（YYYY年MM月DD日）
+    import re
+    assert re.match(r"^\d{4}年\d{2}月\d{2}日$", data["date"])
+    # NJ生値が reference に
+    assert data["reference"]["K24"] == "26,352"
+    assert data["reference"]["K18"] == "19,553"
+    assert data["reference"]["Pt900"] == "9,921"
+    # 当店計算値が adjusted に
+    assert data["adjusted"]["K24"] == "26,180"
+    assert data["adjusted"]["K22"] == "25,280"
+    assert data["adjusted"]["K18"] == "19,553"   # K18はそのまま
+    assert data["adjusted"]["K14"] == "14,090"
+    assert data["adjusted"]["Pt1000"] == "10,640"
+    assert data["adjusted"]["Pt900"] == "9,870"
+    assert data["adjusted"]["Pt850"] == "9,280"
+    assert "source_url" in data
 
 
 def test_fetch_returns_error_on_exception(client, app):

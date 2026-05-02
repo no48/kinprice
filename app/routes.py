@@ -2,7 +2,8 @@ import re
 from flask import Blueprint, current_app, jsonify, render_template, request
 from app.auth import protect
 from app.scraper import scrape_gold_price
-from app.wordpress import update_gold_page
+from app.margins import compute_adjusted
+from app.wordpress import update_gold_page, today_jst_ja, update_date_only_on_wp
 
 bp = Blueprint("main", __name__)
 protect(bp)
@@ -17,9 +18,22 @@ def index():
 def fetch_price():
     try:
         url = current_app.config["GOLD_SOURCE_URL"]
-        result = scrape_gold_price(url=url)
-        result["source_url"] = url
-        return jsonify(result)
+        raw = scrape_gold_price(url=url)
+        adjusted = compute_adjusted(raw)
+        return jsonify({
+            "date": today_jst_ja(),
+            "reference": {
+                "K24":    raw["retail_price"],
+                "K22":    raw["gold_scrap"].get("K22", ""),
+                "K18":    raw["gold_scrap"].get("K18", ""),
+                "K14":    raw["gold_scrap"].get("K14", ""),
+                "Pt1000": raw["pt_scrap"].get("Pt1000", ""),
+                "Pt900":  raw["pt_scrap"].get("Pt900", ""),
+                "Pt850":  raw["pt_scrap"].get("Pt850", ""),
+            },
+            "adjusted": adjusted,
+            "source_url": url,
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
