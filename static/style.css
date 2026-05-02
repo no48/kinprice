@@ -120,6 +120,32 @@ h1 {
     text-align: left;
 }
 
+.date-input-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.form-group .date-input-row .date-input {
+    flex: 0 0 auto;
+    padding: 10px 8px;
+    text-align: center;
+}
+
+.form-group .date-input-row .date-input-year {
+    width: 5rem;
+}
+
+.form-group .date-input-row .date-input-md {
+    width: 3rem;
+}
+
+.date-sep {
+    font-size: 1rem;
+    color: #374151;
+    padding: 0 2px;
+}
+
 .unit {
     font-size: 0.875rem;
     color: #6b7280;

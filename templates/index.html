@@ -14,8 +14,12 @@
 
         <form id="price-form" class="price-form hidden">
             <div class="form-group">
-                <label for="price-date">取得日時</label>
-                <input type="text" id="price-date" name="date">
+                <label>取得日時</label>
+                <div class="date-input-row">
+                    <input type="text" id="date-year" class="date-input date-input-year" maxlength="4" inputmode="numeric"><span class="date-sep">年</span>
+                    <input type="text" id="date-month" class="date-input date-input-md" maxlength="2" inputmode="numeric"><span class="date-sep">月</span>
+                    <input type="text" id="date-day" class="date-input date-input-md" maxlength="2" inputmode="numeric"><span class="date-sep">日</span>
+                </div>
             </div>
 
             <!-- 金スクラップ -->
@@ -54,7 +58,36 @@
         const btnUpload = document.getElementById('btn-upload');
         const priceForm = document.getElementById('price-form');
         const statusEl = document.getElementById('status');
-        const priceDateEl = document.getElementById('price-date');
+        const dateYearEl = document.getElementById('date-year');
+        const dateMonthEl = document.getElementById('date-month');
+        const dateDayEl = document.getElementById('date-day');
+
+        // 数字以外の入力を即座に弾く
+        [dateYearEl, dateMonthEl, dateDayEl].forEach(el => {
+            el.addEventListener('input', () => {
+                el.value = el.value.replace(/\D/g, '');
+            });
+        });
+
+        function setDateFields(dateStr) {
+            const m = /^(\d{4})年(\d{2})月(\d{2})日$/.exec(dateStr || '');
+            if (m) {
+                dateYearEl.value = m[1];
+                dateMonthEl.value = m[2];
+                dateDayEl.value = m[3];
+            } else {
+                dateYearEl.value = '';
+                dateMonthEl.value = '';
+                dateDayEl.value = '';
+            }
+        }
+
+        function getDateString() {
+            const y = dateYearEl.value.trim();
+            const mo = dateMonthEl.value.trim().padStart(2, '0');
+            const d = dateDayEl.value.trim().padStart(2, '0');
+            return `${y}年${mo}月${d}日`;
+        }
         const gbpSection = document.getElementById('gbp-section');
         const gbpTextEl = document.getElementById('gbp-text');
         const btnGbp = document.getElementById('btn-gbp');
@@ -159,7 +192,7 @@
                 if (data.error) {
                     showStatus('エラー: ' + data.error, 'error');
                 } else {
-                    priceDateEl.value = data.date || '';
+                    setDateFields(data.date);
                     priceForm.classList.remove('hidden');
 
                     if (data.source_url) {
@@ -209,7 +242,7 @@
             gbpSection.classList.add('hidden');
 
             const payload = {
-                date: priceDateEl.value,
+                date: getDateString(),
                 post_to_wp: true,
                 gold_scrap: collectScrapValues(document.getElementById('gold-scrap-grid')),
                 pt_scrap: collectScrapValues(document.getElementById('pt-scrap-grid')),
@@ -255,7 +288,7 @@
         const btnUpdateDate = document.getElementById('btn-update-date');
 
         btnUpdateDate.addEventListener('click', async () => {
-            const newDate = priceDateEl.value.trim();
+            const newDate = getDateString();
             if (!/^\d{4}年\d{2}月\d{2}日$/.test(newDate)) {
                 alert('日付の形式が不正です（例: 2026年05月02日）');
                 return;
