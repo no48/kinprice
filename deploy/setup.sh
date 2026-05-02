@@ -38,10 +38,6 @@ if [ ! -f "$APP_DIR/.env" ]; then
     echo "WARNING: Edit .env file: $APP_DIR/.env"
 fi
 
-echo "=== Basic auth user ==="
-echo "Enter Basic auth password:"
-htpasswd -c /etc/nginx/.htpasswd goldadmin
-
 echo "=== Nginx config ==="
 cp deploy/nginx.conf /etc/nginx/sites-available/gold-uploader
 sed -i "s/YOUR_DOMAIN/$DOMAIN/g" /etc/nginx/sites-available/gold-uploader
