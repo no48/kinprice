@@ -212,3 +212,56 @@ def test_upload_returns_gbp_search_url(client, app):
     data = res.get_json()
     assert "gbp_search_url" in data
     assert "google.com/search" in data["gbp_search_url"]
+
+
+# ---------------------------------------------------------------------------
+# /update-date
+# ---------------------------------------------------------------------------
+
+def test_update_date_success(client, app):
+    prefix = get_prefix(app)
+    wp_result = {"success": True, "message": "日付を更新しました", "link": "https://example.com/gold"}
+    with patch("app.routes.update_date_only_on_wp", return_value=wp_result) as mock_wp:
+        res = client.post(
+            f"{prefix}/update-date",
+            data=json.dumps({"date": "2026年05月02日"}),
+            content_type="application/json",
+        )
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["success"] is True
+    assert mock_wp.call_args.kwargs["new_date"] == "2026年05月02日"
+
+
+def test_update_date_rejects_invalid_format(client, app):
+    prefix = get_prefix(app)
+    res = client.post(
+        f"{prefix}/update-date",
+        data=json.dumps({"date": "2026/05/02"}),  # スラッシュ形式は不可
+        content_type="application/json",
+    )
+    assert res.status_code == 400
+    assert "形式" in res.get_json()["error"]
+
+
+def test_update_date_rejects_empty(client, app):
+    prefix = get_prefix(app)
+    res = client.post(
+        f"{prefix}/update-date",
+        data=json.dumps({}),
+        content_type="application/json",
+    )
+    assert res.status_code == 400
+
+
+def test_update_date_returns_500_on_wp_error(client, app):
+    prefix = get_prefix(app)
+    wp_result = {"success": False, "error": "WordPress更新エラー: timeout"}
+    with patch("app.routes.update_date_only_on_wp", return_value=wp_result):
+        res = client.post(
+            f"{prefix}/update-date",
+            data=json.dumps({"date": "2026年05月02日"}),
+            content_type="application/json",
+        )
+    assert res.status_code == 500
+    assert "error" in res.get_json()
