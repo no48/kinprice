@@ -15,7 +15,7 @@
         <form id="price-form" class="price-form hidden">
             <div class="form-group">
                 <label for="price-date">取得日時</label>
-                <input type="text" id="price-date" name="date" readonly>
+                <input type="text" id="price-date" name="date">
             </div>
 
             <!-- 金スクラップ -->
@@ -31,6 +31,7 @@
             </div>
 
             <button type="button" id="btn-upload" class="btn btn-upload">WordPressにアップロード</button>
+            <button type="button" id="btn-update-date" class="btn btn-update-date">日付のみ更新</button>
         </form>
 
         <div id="status" class="status hidden"></div>
@@ -85,22 +86,24 @@
             statusEl.classList.add('hidden');
         }
 
-        function renderScrapGrid(gridEl, sectionEl, data, allowedKeys) {
+        function renderScrapGridWithRef(gridEl, sectionEl, adjusted, reference, allowedKeys) {
             gridEl.innerHTML = '';
-            const visibleKeys = allowedKeys.filter(k => data[k] !== undefined);
+            const visibleKeys = allowedKeys.filter(k => adjusted[k] !== undefined);
             if (visibleKeys.length === 0) {
                 sectionEl.classList.add('hidden');
                 return;
             }
             sectionEl.classList.remove('hidden');
             visibleKeys.forEach(key => {
+                const refValue = reference[key] || '';
+                const initValue = adjusted[key] || '';
                 const row = document.createElement('div');
                 row.className = 'scrap-row';
                 row.innerHTML =
                     '<span class="scrap-label">' + SCRAP_LABELS[key] + '</span>' +
-                    '<span class="scrap-ref">参考: ' + data[key] + '円</span>' +
+                    '<span class="scrap-ref">参考: ' + refValue + '円</span>' +
                     '<span class="scrap-input-wrap">' +
-                        '<input type="text" class="scrap-input" data-key="' + key + '" value="' + data[key] + '" data-ref="' + data[key] + '">' +
+                        '<input type="text" class="scrap-input" data-key="' + key + '" value="' + initValue + '" data-ref="' + refValue + '">' +
                         '<span class="unit">円</span>' +
                     '</span>';
                 gridEl.appendChild(row);
@@ -165,22 +168,18 @@
                         sourceLinkWrap.classList.remove('hidden');
                     }
 
-                    const goldScrap = Object.assign({}, data.gold_scrap || {});
-                    if (data.retail_price) {
-                        goldScrap.K24 = data.retail_price;
-                    }
+                    const reference = data.reference || {};
+                    const adjusted = data.adjusted || {};
 
-                    renderScrapGrid(
+                    renderScrapGridWithRef(
                         document.getElementById('gold-scrap-grid'),
                         document.getElementById('gold-scrap-section'),
-                        goldScrap,
-                        GOLD_SCRAP_KEYS
+                        adjusted, reference, GOLD_SCRAP_KEYS
                     );
-                    renderScrapGrid(
+                    renderScrapGridWithRef(
                         document.getElementById('pt-scrap-grid'),
                         document.getElementById('pt-scrap-section'),
-                        data.pt_scrap || {},
-                        PT_SCRAP_KEYS
+                        adjusted, reference, PT_SCRAP_KEYS
                     );
                 }
             } catch (e) {
@@ -250,6 +249,39 @@
             } finally {
                 btnUpload.disabled = false;
                 btnUpload.textContent = 'WordPressにアップロード';
+            }
+        });
+
+        const btnUpdateDate = document.getElementById('btn-update-date');
+
+        btnUpdateDate.addEventListener('click', async () => {
+            const newDate = priceDateEl.value.trim();
+            if (!/^\d{4}年\d{2}月\d{2}日$/.test(newDate)) {
+                alert('日付の形式が不正です（例: 2026年05月02日）');
+                return;
+            }
+
+            btnUpdateDate.disabled = true;
+            btnUpdateDate.textContent = '更新中...';
+            hideStatus();
+
+            try {
+                const res = await fetch(BASE_URL + '/update-date', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: newDate }),
+                });
+                const data = await res.json();
+                if (data.error) {
+                    showStatus('エラー: ' + data.error, 'error');
+                } else {
+                    showStatus('日付を更新しました: ' + newDate, 'success');
+                }
+            } catch (e) {
+                showStatus('通信エラーが発生しました: ' + e.message, 'error');
+            } finally {
+                btnUpdateDate.disabled = false;
+                btnUpdateDate.textContent = '日付のみ更新';
             }
         });
 
