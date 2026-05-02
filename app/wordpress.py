@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import requests
@@ -134,3 +135,50 @@ def _build_page_content(
   </div>
 </div>
 """
+
+
+def update_date_only_on_wp(
+    site_url: str,
+    username: str,
+    app_password: str,
+    page_id: int,
+    new_date: str,
+) -> dict:
+    """WordPress固定ページのHTML内の日付文字列のみを置換する。
+
+    `\\d{4}年\\d{2}月\\d{2}日` の最初のマッチを new_date に置換する。
+    マッチがなければエラーを返す。
+    """
+    api_url = f"{site_url.rstrip('/')}/wp-json/wp/v2/pages/{page_id}"
+    auth = HTTPBasicAuth(username, app_password)
+    try:
+        get_response = requests.get(api_url, auth=auth, timeout=15)
+        get_response.raise_for_status()
+        current = get_response.json().get("content", {}).get("raw", "")
+
+        new_content, count = re.subn(
+            r"\d{4}年\d{2}月\d{2}日", new_date, current, count=1
+        )
+        if count == 0:
+            return {
+                "success": False,
+                "error": "ページ内に日付パターンが見つかりません",
+            }
+
+        post_response = requests.post(
+            api_url,
+            json={"content": new_content},
+            auth=auth,
+            timeout=15,
+        )
+        post_response.raise_for_status()
+        return {
+            "success": True,
+            "message": "日付を更新しました",
+            "link": post_response.json().get("link", ""),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"WordPress更新エラー: {str(e)}",
+        }
