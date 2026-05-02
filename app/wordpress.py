@@ -13,10 +13,11 @@ def update_gold_page(
     page_id: int,
     gold_scrap: Optional[dict] = None,
     pt_scrap: Optional[dict] = None,
+    page_date: Optional[str] = None,
 ) -> dict:
     """WordPressの固定ページを貴金属価格で更新する。"""
     content = _build_page_content(
-        gold_scrap or {}, pt_scrap or {},
+        gold_scrap or {}, pt_scrap or {}, page_date,
     )
 
     api_url = f"{site_url.rstrip('/')}/wp-json/wp/v2/pages/{page_id}"
@@ -88,14 +89,15 @@ def _build_coin_rows(k22_price: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _today_jst_ja() -> str:
-    """JSTの今日の日付を '2026年04月19日' 形式で返す。"""
+def today_jst_ja() -> str:
+    """JSTの今日の日付を 'YYYY年MM月DD日' 形式で返す。"""
     return datetime.now(JST).strftime("%Y年%m月%d日")
 
 
 def _build_page_content(
     gold_scrap: dict,
     pt_scrap: dict,
+    page_date: Optional[str] = None,
 ) -> str:
     """固定ページ用のHTMLコンテンツを生成する。"""
     rows = []
@@ -110,7 +112,7 @@ def _build_page_content(
 
     coin_rows_html = _build_coin_rows(gold_scrap.get("K22", ""))
 
-    formatted_date = _today_jst_ja()
+    formatted_date = page_date if page_date else today_jst_ja()
 
     return f"""<div class="top_gold_wrap">
   <div class="hl">
