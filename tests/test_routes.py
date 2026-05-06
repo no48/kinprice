@@ -28,6 +28,12 @@ def auth_headers(client):
     return client
 
 
+@pytest.fixture(autouse=True)
+def isolate_margins_file(tmp_path, monkeypatch):
+    """各テストでmargins.jsonを一時ファイルに隔離する。"""
+    monkeypatch.setenv("MARGINS_FILE_PATH", str(tmp_path / "margins.json"))
+
+
 def get_prefix(app):
     return app.config.get("URL_PREFIX", "/gold-admin")
 
@@ -212,3 +218,71 @@ def test_upload_returns_gbp_search_url(client, app):
     data = res.get_json()
     assert "gbp_search_url" in data
     assert "google.com/search" in data["gbp_search_url"]
+
+
+# ---------------------------------------------------------------------------
+# /settings
+# ---------------------------------------------------------------------------
+
+def test_get_settings_returns_defaults_when_no_file(client, app):
+    prefix = get_prefix(app)
+    res = client.get(f"{prefix}/settings")
+    assert res.status_code == 200
+    data = res.get_json()
+    # デフォルトのキーが揃っている
+    for k in ["K24", "K22", "K14", "Pt1000", "Pt900", "Pt850"]:
+        assert k in data
+    assert data["K24"] == 170
+
+
+def test_post_settings_saves_and_returns_them(client, app):
+    prefix = get_prefix(app)
+    payload = {"K24": 200, "K22": 1000, "K14": 500, "Pt1000": 250, "Pt900": 60, "Pt850": 90}
+    res = client.post(
+        f"{prefix}/settings",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["success"] is True
+    assert data["margins"]["K24"] == 200
+
+    # 続けてGETすると保存値が返る
+    res2 = client.get(f"{prefix}/settings")
+    assert res2.get_json()["K24"] == 200
+
+
+def test_post_settings_accepts_string_integers(client, app):
+    """フォームから文字列で来てもintに変換する。"""
+    prefix = get_prefix(app)
+    payload = {"K24": "180", "K22": "900", "K14": "400", "Pt1000": "200", "Pt900": "50", "Pt850": "80"}
+    res = client.post(
+        f"{prefix}/settings",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    assert res.status_code == 200
+    assert res.get_json()["margins"]["K24"] == 180
+
+
+def test_post_settings_rejects_non_integer(client, app):
+    prefix = get_prefix(app)
+    payload = {"K24": "abc", "K22": 900, "K14": 400, "Pt1000": 200, "Pt900": 50, "Pt850": 80}
+    res = client.post(
+        f"{prefix}/settings",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    assert res.status_code == 400
+
+
+def test_post_settings_rejects_negative(client, app):
+    prefix = get_prefix(app)
+    payload = {"K24": -10, "K22": 900, "K14": 400, "Pt1000": 200, "Pt900": 50, "Pt850": 80}
+    res = client.post(
+        f"{prefix}/settings",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    assert res.status_code == 400

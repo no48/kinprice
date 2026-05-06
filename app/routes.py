@@ -2,7 +2,7 @@ import re
 from flask import Blueprint, current_app, jsonify, render_template, request
 from app.auth import protect
 from app.scraper import scrape_gold_price
-from app.margins import compute_adjusted
+from app.margins import compute_adjusted, load_margins, save_margins, MARGIN_KEYS
 from app.wordpress import update_gold_page, today_jst_ja
 
 bp = Blueprint("main", __name__)
@@ -82,3 +82,30 @@ def upload_price():
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"サーバーエラー: {type(e).__name__}: {str(e)}"}), 500
+
+
+@bp.route("/settings", methods=["GET"])
+def get_settings():
+    return jsonify(load_margins())
+
+
+@bp.route("/settings", methods=["POST"])
+def update_settings():
+    data = request.get_json(silent=True) or {}
+    parsed = {}
+    for k in MARGIN_KEYS:
+        v = data.get(k)
+        if isinstance(v, bool):
+            return jsonify({"error": f"{k} は整数で指定してください"}), 400
+        try:
+            v_int = int(v)
+        except (TypeError, ValueError):
+            return jsonify({"error": f"{k} は整数で指定してください"}), 400
+        if v_int < 0:
+            return jsonify({"error": f"{k} は0以上で指定してください"}), 400
+        parsed[k] = v_int
+    try:
+        save_margins(parsed)
+    except (OSError, ValueError) as e:
+        return jsonify({"error": f"保存エラー: {e}"}), 500
+    return jsonify({"success": True, "margins": parsed})

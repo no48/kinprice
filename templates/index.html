@@ -8,6 +8,7 @@
 </head>
 <body>
     <div class="container">
+        <button type="button" id="btn-settings" class="btn-settings" title="マージン設定">⚙️</button>
         <h1>金価格アップロードツール</h1>
 
         <button id="btn-fetch" class="btn btn-fetch">価格を取得する</button>
@@ -47,6 +48,28 @@
             <h2>GBP投稿用テキスト</h2>
             <div id="gbp-text" class="gbp-text"></div>
             <button id="btn-gbp" class="btn btn-gbp">コピーしてGBPを開く</button>
+        </div>
+    </div>
+
+    <!-- 設定モーダル -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <h2>マージン設定</h2>
+            <p class="modal-hint">参考値から差し引く円数。すべて0以上の整数。</p>
+            <div class="margin-grid">
+                <label>K24<input type="number" id="m-K24" min="0" step="1"></label>
+                <label>K22 <span class="margin-note">(自店K24基準)</span><input type="number" id="m-K22" min="0" step="1"></label>
+                <label>K14<input type="number" id="m-K14" min="0" step="1"></label>
+                <label>Pt1000<input type="number" id="m-Pt1000" min="0" step="1"></label>
+                <label>Pt900<input type="number" id="m-Pt900" min="0" step="1"></label>
+                <label>Pt850<input type="number" id="m-Pt850" min="0" step="1"></label>
+            </div>
+            <div id="settings-status" class="status hidden"></div>
+            <div class="modal-actions">
+                <button type="button" id="btn-settings-cancel" class="btn btn-cancel">キャンセル</button>
+                <button type="button" id="btn-settings-save" class="btn btn-save">保存</button>
+            </div>
         </div>
     </div>
 
@@ -330,6 +353,73 @@
             }
             if (gbpSearchUrl) {
                 window.open(gbpSearchUrl, '_blank');
+            }
+        });
+
+        // ----- マージン設定モーダル -----
+        const MARGIN_KEYS = ['K24', 'K22', 'K14', 'Pt1000', 'Pt900', 'Pt850'];
+        const btnSettings = document.getElementById('btn-settings');
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsStatus = document.getElementById('settings-status');
+        const btnSettingsSave = document.getElementById('btn-settings-save');
+        const btnSettingsCancel = document.getElementById('btn-settings-cancel');
+
+        function showSettingsStatus(msg, type) {
+            settingsStatus.textContent = msg;
+            settingsStatus.className = 'status ' + type;
+            settingsStatus.classList.remove('hidden');
+        }
+
+        async function openSettings() {
+            settingsStatus.classList.add('hidden');
+            try {
+                const res = await fetch(BASE_URL + '/settings');
+                const data = await res.json();
+                MARGIN_KEYS.forEach(k => {
+                    document.getElementById('m-' + k).value = data[k] ?? '';
+                });
+                settingsModal.classList.remove('hidden');
+            } catch (e) {
+                alert('設定の読み込みに失敗しました: ' + e.message);
+            }
+        }
+
+        function closeSettings() {
+            settingsModal.classList.add('hidden');
+        }
+
+        btnSettings.addEventListener('click', openSettings);
+        btnSettingsCancel.addEventListener('click', closeSettings);
+        settingsModal.querySelector('.modal-backdrop').addEventListener('click', closeSettings);
+
+        btnSettingsSave.addEventListener('click', async () => {
+            const payload = {};
+            for (const k of MARGIN_KEYS) {
+                const raw = document.getElementById('m-' + k).value.trim();
+                if (raw === '' || isNaN(parseInt(raw, 10)) || parseInt(raw, 10) < 0) {
+                    showSettingsStatus(`${k} は0以上の整数を入力してください`, 'error');
+                    return;
+                }
+                payload[k] = parseInt(raw, 10);
+            }
+            btnSettingsSave.disabled = true;
+            try {
+                const res = await fetch(BASE_URL + '/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (data.error) {
+                    showSettingsStatus('エラー: ' + data.error, 'error');
+                } else {
+                    showSettingsStatus('保存しました', 'success');
+                    setTimeout(closeSettings, 1000);
+                }
+            } catch (e) {
+                showSettingsStatus('通信エラー: ' + e.message, 'error');
+            } finally {
+                btnSettingsSave.disabled = false;
             }
         });
     </script>
