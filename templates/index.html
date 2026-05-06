@@ -166,17 +166,17 @@
             return parseFloat(String(s).replace(/,/g, ''));
         }
 
-        function findBelowReferenceLabels() {
-            const below = [];
+        function findAboveReferenceLabels() {
+            const above = [];
             document.querySelectorAll('#gold-scrap-grid .scrap-input, #pt-scrap-grid .scrap-input').forEach(input => {
                 const entered = parsePriceNumber(input.value);
                 const ref = parsePriceNumber(input.dataset.ref);
-                if (!isNaN(entered) && !isNaN(ref) && entered < ref) {
+                if (!isNaN(entered) && !isNaN(ref) && entered > ref) {
                     const label = SCRAP_LABELS[input.dataset.key] || input.dataset.key;
-                    below.push(`${label}: ${input.value.trim()} < 参考 ${input.dataset.ref}`);
+                    above.push(`${label}: ${input.value.trim()} > 参考 ${input.dataset.ref}`);
                 }
             });
-            return below;
+            return above;
         }
 
         btnFetch.addEventListener('click', async () => {
@@ -229,9 +229,9 @@
                 return;
             }
 
-            const belowLabels = findBelowReferenceLabels();
-            if (belowLabels.length > 0) {
-                const ok = confirm('以下の価格が参考値（プレースホルダ）より低いです。続行しますか？\n\n・' + belowLabels.join('\n・'));
+            const aboveLabels = findAboveReferenceLabels();
+            if (aboveLabels.length > 0) {
+                const ok = confirm('以下の価格がネットジャパン参考値より高いです。続行しますか？\n\n・' + aboveLabels.join('\n・'));
                 if (!ok) return;
             }
 
