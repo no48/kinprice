@@ -3,7 +3,7 @@ from flask import Blueprint, current_app, jsonify, render_template, request
 from app.auth import protect
 from app.scraper import scrape_gold_price
 from app.margins import compute_adjusted
-from app.wordpress import update_gold_page, today_jst_ja, update_date_only_on_wp
+from app.wordpress import update_gold_page, today_jst_ja
 
 bp = Blueprint("main", __name__)
 protect(bp)
@@ -81,26 +81,4 @@ def upload_price():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": f"サーバーエラー: {type(e).__name__}: {str(e)}"}), 500
-
-
-@bp.route("/update-date", methods=["POST"])
-def update_date():
-    try:
-        data = request.get_json(silent=True) or {}
-        new_date = (data.get("date") or "").strip()
-        if not re.match(r"^\d{4}年\d{2}月\d{2}日$", new_date):
-            return jsonify({"error": "日付の形式が不正です（YYYY年MM月DD日）"}), 400
-
-        result = update_date_only_on_wp(
-            site_url=current_app.config["WP_SITE_URL"],
-            username=current_app.config["WP_USERNAME"],
-            app_password=current_app.config["WP_APP_PASSWORD"],
-            page_id=current_app.config["WP_PAGE_ID"],
-            new_date=new_date,
-        )
-        if not result.get("success"):
-            return jsonify({"error": result.get("error", "")}), 500
-        return jsonify(result)
-    except Exception as e:
         return jsonify({"error": f"サーバーエラー: {type(e).__name__}: {str(e)}"}), 500

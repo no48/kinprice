@@ -35,7 +35,6 @@
             </div>
 
             <button type="button" id="btn-upload" class="btn btn-upload">WordPressにアップロード</button>
-            <button type="button" id="btn-update-date" class="btn btn-update-date">日付のみ更新</button>
         </form>
 
         <div id="status" class="status hidden"></div>
@@ -285,36 +284,34 @@
             }
         });
 
-        const btnUpdateDate = document.getElementById('btn-update-date');
-
-        btnUpdateDate.addEventListener('click', async () => {
-            const newDate = getDateString();
-            if (!/^\d{4}年\d{2}月\d{2}日$/.test(newDate)) {
-                alert('日付の形式が不正です（例: 2026年05月02日）');
-                return;
+        // 価格欄から離れた時に式を計算（例: "10000-120" → "9,880"）
+        function evaluateExpression(value) {
+            const trimmed = value.trim();
+            if (!trimmed) return value;
+            const cleaned = trimmed.replace(/[,\s]/g, '');
+            // 数字と + - * / . ( ) のみ許容（JS識別子は通さない）
+            if (!/^[\d+\-*/.()]+$/.test(cleaned)) return value;
+            // 演算子が無いただの数字なら、カンマ区切りで整形
+            if (!/[+\-*/]/.test(cleaned)) {
+                const n = parseFloat(cleaned);
+                if (isNaN(n) || !isFinite(n)) return value;
+                return Math.round(n).toLocaleString('en-US');
             }
-
-            btnUpdateDate.disabled = true;
-            btnUpdateDate.textContent = '更新中...';
-            hideStatus();
-
             try {
-                const res = await fetch(BASE_URL + '/update-date', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ date: newDate }),
-                });
-                const data = await res.json();
-                if (data.error) {
-                    showStatus('エラー: ' + data.error, 'error');
-                } else {
-                    showStatus('日付を更新しました: ' + newDate, 'success');
-                }
+                const result = new Function('return ' + cleaned)();
+                if (typeof result !== 'number' || !isFinite(result)) return value;
+                return Math.round(result).toLocaleString('en-US');
             } catch (e) {
-                showStatus('通信エラーが発生しました: ' + e.message, 'error');
-            } finally {
-                btnUpdateDate.disabled = false;
-                btnUpdateDate.textContent = '日付のみ更新';
+                return value;
+            }
+        }
+
+        // 動的生成される .scrap-input にイベント委譲（focusoutはバブルする）
+        priceForm.addEventListener('focusout', (e) => {
+            if (!e.target.classList.contains('scrap-input')) return;
+            const newValue = evaluateExpression(e.target.value);
+            if (newValue !== e.target.value) {
+                e.target.value = newValue;
             }
         });
 
