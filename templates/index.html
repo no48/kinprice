@@ -60,6 +60,7 @@
             <div class="margin-grid">
                 <label>K24<input type="number" id="m-K24" min="0" step="1"></label>
                 <label>K22 <span class="margin-note">(自店K24基準)</span><input type="number" id="m-K22" min="0" step="1"></label>
+                <label>K18<input type="number" id="m-K18" min="0" step="1"></label>
                 <label>K14<input type="number" id="m-K14" min="0" step="1"></label>
                 <label>Pt1000<input type="number" id="m-Pt1000" min="0" step="1"></label>
                 <label>Pt900<input type="number" id="m-Pt900" min="0" step="1"></label>
@@ -216,6 +217,7 @@
                 } else {
                     setDateFields(data.date);
                     priceForm.classList.remove('hidden');
+                    btnSettings.classList.add('hidden');
 
                     if (data.source_url) {
                         sourceLinkEl.href = data.source_url;
@@ -357,7 +359,7 @@
         });
 
         // ----- マージン設定モーダル -----
-        const MARGIN_KEYS = ['K24', 'K22', 'K14', 'Pt1000', 'Pt900', 'Pt850'];
+        const MARGIN_KEYS = ['K24', 'K22', 'K18', 'K14', 'Pt1000', 'Pt900', 'Pt850'];
         const btnSettings = document.getElementById('btn-settings');
         const settingsModal = document.getElementById('settings-modal');
         const settingsStatus = document.getElementById('settings-status');

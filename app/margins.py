@@ -8,6 +8,7 @@ from pathlib import Path
 DEFAULT_MARGINS = {
     "K24":    170,
     "K22":    900,   # 自店K24から引く額（NJのK22は使わない）
+    "K18":    0,
     "K14":    400,
     "Pt1000": 200,
     "Pt900":  50,
@@ -84,7 +85,7 @@ def compute_adjusted(raw: dict) -> dict:
     margins = load_margins()
 
     nj_k24    = _to_int(raw["retail_price"])
-    nj_k18    = raw["gold_scrap"]["K18"]
+    nj_k18    = _to_int(raw["gold_scrap"]["K18"])
     nj_k14    = _to_int(raw["gold_scrap"]["K14"])
     nj_pt1000 = _to_int(raw["pt_scrap"]["Pt1000"])
     nj_pt900  = _to_int(raw["pt_scrap"]["Pt900"])
@@ -96,7 +97,7 @@ def compute_adjusted(raw: dict) -> dict:
     return {
         "K24":    _fmt(k24),
         "K22":    _fmt(k22),
-        "K18":    nj_k18,
+        "K18":    _fmt(floor10(nj_k18) - margins["K18"]),
         "K14":    _fmt(floor10(nj_k14) - margins["K14"]),
         "Pt1000": _fmt(floor10(nj_pt1000) - margins["Pt1000"]),
         "Pt900":  _fmt(floor10(nj_pt900)  - margins["Pt900"]),

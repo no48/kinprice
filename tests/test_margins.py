@@ -32,10 +32,18 @@ def test_compute_adjusted_k22():
     assert result["K22"] == "25,280"
 
 
-def test_compute_adjusted_k18_passthrough():
-    """K18 はNJ値をそのまま返す（マージン適用なし）。"""
+def test_compute_adjusted_k18_default_is_floor10_only():
+    """K18 デフォルトマージンは0。floor10だけが効いて 19,553 → 19,550。"""
     raw = _raw_with(k18="19,553")
-    assert compute_adjusted(raw)["K18"] == "19,553"
+    assert compute_adjusted(raw)["K18"] == "19,550"
+
+
+def test_compute_adjusted_k18_with_margin():
+    """K18 = floor10(NJ K18) - K18マージン"""
+    save_margins({"K24": 0, "K22": 0, "K18": 100, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
+    raw = _raw_with(k18="19,553")
+    # 19,550 - 100 = 19,450
+    assert compute_adjusted(raw)["K18"] == "19,450"
 
 
 def test_compute_adjusted_k14():
@@ -74,7 +82,7 @@ def test_compute_adjusted_full_example():
     assert result == {
         "K24":    "26,180",
         "K22":    "25,280",
-        "K18":    "19,553",
+        "K18":    "19,550",
         "K14":    "14,090",
         "Pt1000": "10,640",
         "Pt900":  "9,870",
@@ -100,10 +108,11 @@ def test_load_margins_returns_defaults_when_file_missing():
 
 
 def test_load_margins_reads_saved_values(tmp_path, monkeypatch):
-    save_margins({"K24": 200, "K22": 1000, "K14": 500, "Pt1000": 250, "Pt900": 60, "Pt850": 90})
+    save_margins({"K24": 200, "K22": 1000, "K18": 50, "K14": 500, "Pt1000": 250, "Pt900": 60, "Pt850": 90})
     loaded = load_margins()
     assert loaded["K24"] == 200
     assert loaded["K22"] == 1000
+    assert loaded["K18"] == 50
     assert loaded["K14"] == 500
 
 
@@ -117,7 +126,7 @@ def test_load_margins_returns_defaults_when_file_malformed(tmp_path, monkeypatch
 
 def test_load_margins_falls_back_for_missing_keys(tmp_path):
     """ファイルに一部キーしか無い場合、欠落分はデフォルトを使う。"""
-    save_margins({"K24": 999, "K22": 0, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
+    save_margins({"K24": 999, "K22": 0, "K18": 0, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
     loaded = load_margins()
     assert loaded["K24"] == 999
     # その他はそのまま読まれる
@@ -126,17 +135,17 @@ def test_load_margins_falls_back_for_missing_keys(tmp_path):
 
 def test_save_margins_rejects_non_integer():
     with pytest.raises(ValueError):
-        save_margins({"K24": "abc", "K22": 0, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
+        save_margins({"K24": "abc", "K22": 0, "K18": 0, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
 
 
 def test_save_margins_rejects_negative():
     with pytest.raises(ValueError):
-        save_margins({"K24": -1, "K22": 0, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
+        save_margins({"K24": -1, "K22": 0, "K18": 0, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
 
 
 def test_compute_adjusted_uses_loaded_margins():
     """save_margins後、compute_adjustedは新しい値を使う。"""
-    save_margins({"K24": 0, "K22": 0, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
+    save_margins({"K24": 0, "K22": 0, "K18": 0, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
     raw = _raw_with(retail_price="26,352")
     # マージン全部0なので K24 = floor10(26,352) - 0 = 26,350
     assert compute_adjusted(raw)["K24"] == "26,350"
