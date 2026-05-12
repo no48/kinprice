@@ -27,7 +27,7 @@ def fetch_price():
                 "K22":    raw["gold_scrap"]["K22"],
                 "K18":    raw["gold_scrap"]["K18"],
                 "K14":    raw["gold_scrap"]["K14"],
-                "Pt1000": raw["pt_scrap"]["Pt1000"],
+                "Pt1000": raw["pt_retail_price"],
                 "Pt900":  raw["pt_scrap"]["Pt900"],
                 "Pt850":  raw["pt_scrap"]["Pt850"],
             },

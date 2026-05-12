@@ -28,7 +28,7 @@ def scrape_gold_price(url: Optional[str] = None, html: Optional[str] = None) -> 
     htmlを渡した場合はパースのみ行う（テスト用）。
 
     Returns:
-        dict: retail_price, date, gold_scrap, pt_scrap, silver_scrap
+        dict: retail_price, pt_retail_price, date, gold_scrap, pt_scrap, silver_scrap
     """
     if html is not None:
         return _parse_from_html(html)
@@ -60,13 +60,18 @@ def _fetch_from_api() -> dict:
         raise ValueError("APIレスポンスにcontentsが含まれていません。")
     data = contents[0]
 
-    retail_price = (data.get("highlight") or {}).get("gold", {}).get("price")
+    highlight = data.get("highlight") or {}
+    retail_price = (highlight.get("gold") or {}).get("price")
     if not retail_price:
         raise ValueError("金価格の取得に失敗しました。APIレスポンス構造が変更された可能性があります。")
+    pt_retail_price = (highlight.get("pt") or {}).get("price")
+    if not pt_retail_price:
+        raise ValueError("プラチナ価格の取得に失敗しました。APIレスポンス構造が変更された可能性があります。")
 
     scrap = data.get("scrapItems") or {}
     return {
         "retail_price": retail_price,
+        "pt_retail_price": pt_retail_price,
         "date": data.get("marketDate", ""),
         "gold_scrap": _map_scrap(scrap.get("gold") or {}, _GOLD_API_KEYS),
         "pt_scrap": _map_scrap(scrap.get("pt") or {}, _PT_API_KEYS),
@@ -87,6 +92,7 @@ def _parse_texts(texts: list[str]) -> dict:
     """p.text要素のテキストリストから全価格を抽出する（旧HTMLパース用、テスト互換）。"""
     result = {
         "retail_price": None,
+        "pt_retail_price": None,
         "date": "",
         "gold_scrap": {},
         "pt_scrap": {},

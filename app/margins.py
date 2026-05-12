@@ -87,7 +87,7 @@ def compute_adjusted(raw: dict) -> dict:
     nj_k24    = _to_int(raw["retail_price"])
     nj_k18    = _to_int(raw["gold_scrap"]["K18"])
     nj_k14    = _to_int(raw["gold_scrap"]["K14"])
-    nj_pt1000 = _to_int(raw["pt_scrap"]["Pt1000"])
+    nj_pt1000 = _to_int(raw["pt_retail_price"])
     nj_pt900  = _to_int(raw["pt_scrap"]["Pt900"])
     nj_pt850  = _to_int(raw["pt_scrap"]["Pt850"])
 

@@ -62,6 +62,7 @@ def test_fetch_returns_json(client, app):
     prefix = get_prefix(app)
     mock_raw = {
         "retail_price": "26,200",
+        "pt_retail_price": "11,400",
         "date": "2026/04/06 09:30",
         "gold_scrap": {"K24": "25,000", "K22": "22,000", "K18": "19,000", "K14": "14,000"},
         "pt_scrap":   {"Pt1000": "11,000", "Pt900": "10,000", "Pt850": "9,000"},
@@ -79,6 +80,7 @@ def test_fetch_returns_date_reference_and_adjusted(client, app):
     prefix = get_prefix(app)
     mock_raw = {
         "retail_price": "26,352",
+        "pt_retail_price": "11,200",
         "date": "2026/04/24 09:30",
         "gold_scrap": {"K24": "25,614", "K22": "23,216", "K18": "19,553", "K14": "14,494"},
         "pt_scrap":   {"Pt1000": "10,849", "Pt950": "10,290", "Pt900": "9,921", "Pt850": "9,362"},
@@ -91,16 +93,18 @@ def test_fetch_returns_date_reference_and_adjusted(client, app):
     # 当日のJST日付（YYYY年MM月DD日）
     import re
     assert re.match(r"^\d{4}年\d{2}月\d{2}日$", data["date"])
-    # NJ生値が reference に
+    # NJ生値が reference に（Pt1000の参考値はPt小売価格を使う）
     assert data["reference"]["K24"] == "26,352"
     assert data["reference"]["K18"] == "19,553"
+    assert data["reference"]["Pt1000"] == "11,200"
     assert data["reference"]["Pt900"] == "9,921"
     # 当店計算値が adjusted に
     assert data["adjusted"]["K24"] == "26,180"
     assert data["adjusted"]["K22"] == "25,280"
     assert data["adjusted"]["K18"] == "19,550"   # デフォルトマージン0、floor10のみ
     assert data["adjusted"]["K14"] == "14,090"
-    assert data["adjusted"]["Pt1000"] == "10,640"
+    # Pt1000 = floor10(11,200) - 200 = 11,000
+    assert data["adjusted"]["Pt1000"] == "11,000"
     assert data["adjusted"]["Pt900"] == "9,870"
     assert data["adjusted"]["Pt850"] == "9,280"
     assert "source_url" in data
