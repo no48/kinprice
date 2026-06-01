@@ -203,7 +203,7 @@
             return above;
         }
 
-        btnFetch.addEventListener('click', async () => {
+        async function runFetch() {
             btnFetch.disabled = true;
             btnFetch.textContent = '取得中...';
             hideStatus();
@@ -245,7 +245,13 @@
                 btnFetch.disabled = false;
                 btnFetch.textContent = '価格を取得する';
             }
-        });
+        }
+
+        // ボタンクリックでも取得できるよう残す（再取得用）
+        btnFetch.addEventListener('click', runFetch);
+
+        // 画面を開いた瞬間に自動で取得する
+        runFetch();
 
         btnUpload.addEventListener('click', async () => {
             const emptyLabels = findEmptyPriceLabels();
