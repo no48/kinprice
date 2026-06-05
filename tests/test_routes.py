@@ -101,7 +101,7 @@ def test_fetch_returns_date_reference_and_adjusted(client, app):
     # 当店計算値が adjusted に
     assert data["adjusted"]["K24"] == "26,180"
     assert data["adjusted"]["K22"] == "25,280"
-    assert data["adjusted"]["K18"] == "19,550"   # デフォルトマージン0、floor10のみ
+    assert data["adjusted"]["K18"] == "19,553"   # K18は生値そのまま（丸め・マージンなし）
     assert data["adjusted"]["K14"] == "14,090"
     # Pt1000 = floor10(11,200) - 200 = 11,000
     assert data["adjusted"]["Pt1000"] == "11,000"

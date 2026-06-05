@@ -97,7 +97,7 @@ def compute_adjusted(raw: dict) -> dict:
     return {
         "K24":    _fmt(k24),
         "K22":    _fmt(k22),
-        "K18":    _fmt(floor10(nj_k18) - margins["K18"]),
+        "K18":    _fmt(nj_k18),  # K18はネットジャパンの生値そのまま（丸め・マージンなし）
         "K14":    _fmt(floor10(nj_k14) - margins["K14"]),
         "Pt1000": _fmt(floor10(nj_pt1000) - margins["Pt1000"]),
         "Pt900":  _fmt(floor10(nj_pt900)  - margins["Pt900"]),

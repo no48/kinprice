@@ -32,18 +32,18 @@ def test_compute_adjusted_k22():
     assert result["K22"] == "25,280"
 
 
-def test_compute_adjusted_k18_default_is_floor10_only():
-    """K18 デフォルトマージンは0。floor10だけが効いて 19,553 → 19,550。"""
+def test_compute_adjusted_k18_is_raw_value():
+    """K18はネットジャパンの生値そのまま（丸めなし）。19,553 → 19,553。"""
     raw = _raw_with(k18="19,553")
-    assert compute_adjusted(raw)["K18"] == "19,550"
+    assert compute_adjusted(raw)["K18"] == "19,553"
 
 
-def test_compute_adjusted_k18_with_margin():
-    """K18 = floor10(NJ K18) - K18マージン"""
+def test_compute_adjusted_k18_ignores_margin():
+    """K18は生値固定なので、マージン設定があっても無視される。"""
     save_margins({"K24": 0, "K22": 0, "K18": 100, "K14": 0, "Pt1000": 0, "Pt900": 0, "Pt850": 0})
     raw = _raw_with(k18="19,553")
-    # 19,550 - 100 = 19,450
-    assert compute_adjusted(raw)["K18"] == "19,450"
+    # マージン100は効かず、生値のまま
+    assert compute_adjusted(raw)["K18"] == "19,553"
 
 
 def test_compute_adjusted_k14():
@@ -84,7 +84,7 @@ def test_compute_adjusted_full_example():
     assert result == {
         "K24":    "26,180",
         "K22":    "25,280",
-        "K18":    "19,550",
+        "K18":    "19,553",
         "K14":    "14,090",
         "Pt1000": "11,000",
         "Pt900":  "9,870",
