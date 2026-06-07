@@ -13,6 +13,8 @@
 
         <button id="btn-fetch" class="btn btn-fetch">ネットジャパンから価格を取得する</button>
 
+        <p id="init-source-note" class="init-source-note hidden">初期値はフリマハイクラスの最新を取得しています。</p>
+
         <form id="price-form" class="price-form hidden">
             <div class="form-group">
                 <label>取得日時</label>
@@ -116,6 +118,7 @@
         const btnGbp = document.getElementById('btn-gbp');
         const sourceLinkWrap = document.getElementById('source-link-wrap');
         const sourceLinkEl = document.getElementById('source-link');
+        const initSourceNote = document.getElementById('init-source-note');
 
         const GOLD_SCRAP_KEYS = ['K24', 'K22', 'K18', 'K14'];
         const PT_SCRAP_KEYS = ['Pt1000', 'Pt900', 'Pt850'];
@@ -207,6 +210,7 @@
             btnFetch.disabled = true;
             btnFetch.textContent = '取得中...';
             hideStatus();
+            initSourceNote.classList.add('hidden');  // ネットジャパン値で上書きするので初期値の注記は消す
 
             try {
                 const res = await fetch(BASE_URL + '/fetch', { method: 'POST' });
@@ -261,6 +265,7 @@
                     setDateFields(data.date);
                     priceForm.classList.remove('hidden');
                     btnSettings.classList.add('hidden');
+                    initSourceNote.classList.remove('hidden');  // 初期値はフリマハイクラスから
 
                     if (data.source_url) {
                         sourceLinkEl.href = data.source_url;

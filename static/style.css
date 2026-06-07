@@ -326,6 +326,17 @@ h1 {
     display: none;
 }
 
+.init-source-note {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #6b7280;
+    text-align: center;
+}
+
+.init-source-note.hidden {
+    display: none;
+}
+
 .source-link-wrap a {
     color: #0284c7;
     text-decoration: underline;
