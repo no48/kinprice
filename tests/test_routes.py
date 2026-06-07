@@ -119,6 +119,38 @@ def test_fetch_returns_error_on_exception(client, app):
 
 
 # ---------------------------------------------------------------------------
+# /fetch-published (自社サイトの現在公開価格)
+# ---------------------------------------------------------------------------
+
+def test_fetch_published_returns_values_with_calculated_k22(client, app):
+    prefix = get_prefix(app)
+    mock_pub = {
+        "date": "2026年06月07日",
+        "prices": {"K24": "24,190", "K18": "18,010", "K14": "13,030",
+                   "Pt1000": "9,710", "Pt900": "8,730", "Pt850": "8,200"},
+    }
+    with patch("app.routes.scrape_published_price", return_value=mock_pub):
+        res = client.post(f"{prefix}/fetch-published")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["date"] == "2026年06月07日"
+    v = data["values"]
+    assert v["K24"] == "24,190"
+    assert v["K18"] == "18,010"
+    # K22 = floor10(24,190 - 900) = 23,290（デフォルトK22マージン900）
+    assert v["K22"] == "23,290"
+    assert "source_url" in data
+
+
+def test_fetch_published_returns_error_on_exception(client, app):
+    prefix = get_prefix(app)
+    with patch("app.routes.scrape_published_price", side_effect=Exception("boom")):
+        res = client.post(f"{prefix}/fetch-published")
+    assert res.status_code == 500
+    assert "error" in res.get_json()
+
+
+# ---------------------------------------------------------------------------
 # /upload - validation
 # ---------------------------------------------------------------------------
 

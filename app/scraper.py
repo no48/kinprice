@@ -79,6 +79,66 @@ def _fetch_from_api() -> dict:
     }
 
 
+# 自社サイト（フリマハイクラス）の現在公開中の買取価格テーブルから取るキー
+_PUBLISHED_KEYS = {"K24", "K18", "K14", "Pt1000", "Pt900", "Pt850"}
+
+
+def scrape_published_price(url: Optional[str] = None, html: Optional[str] = None) -> dict:
+    """自社サイト（フリマハイクラス）の現在公開中の買取価格を取得する。
+
+    トップページの <div class="top_gold_wrap"> 内の金額表をパースする。
+    htmlを渡した場合はパースのみ行う（テスト用）。
+
+    Returns:
+        dict: {"date": "YYYY年MM月DD日", "prices": {"K24": "24,190", ...}}
+    """
+    if html is None:
+        if url is None:
+            raise ValueError("url or html must be provided")
+        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        resp.raise_for_status()
+        html = resp.text
+    return _parse_published_html(html)
+
+
+def _parse_published_html(html: str) -> dict:
+    """自社サイトのトップHTMLから現在公開中の買取価格を抽出する。"""
+    import re
+
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+    wrap = soup.find("div", class_="top_gold_wrap")
+    if wrap is None:
+        raise ValueError("買取価格テーブルが見つかりません。ページ構造が変更された可能性があります。")
+
+    prices = {}
+    for tr in wrap.find_all("tr"):
+        th = tr.find("th")
+        td = tr.find("td")
+        if not th or not td:
+            continue
+        # "K24（インゴット）" → "K24" のように括弧前のラベルで判定する
+        base_label = re.split(r"[（(]", th.get_text(strip=True))[0].strip()
+        if base_label not in _PUBLISHED_KEYS:
+            continue
+        m = re.search(r"[\d,]+", td.get_text(strip=True))  # "24,190円／1g" → "24,190"
+        if m:
+            prices[base_label] = m.group(0)
+
+    if "K24" not in prices:
+        raise ValueError("金価格の取得に失敗しました。ページ構造が変更された可能性があります。")
+
+    date = ""
+    date_el = wrap.find("p", class_="date")
+    if date_el:
+        dm = re.search(r"\d{4}年\d{2}月\d{2}日", date_el.get_text())
+        if dm:
+            date = dm.group(0)
+
+    return {"date": date, "prices": prices}
+
+
 def _map_scrap(section: dict, key_map: dict[str, str]) -> dict:
     """APIのscrapItemsセクションを {ラベル: 価格} に変換する。"""
     return {

@@ -1,6 +1,30 @@
 import pytest
 
-from app.scraper import scrape_gold_price
+from app.scraper import scrape_gold_price, scrape_published_price
+
+# 自社サイト（フリマハイクラス）トップの実際の構造に合わせたサンプルHTML
+PUBLISHED_HTML = """
+<div class="top_gold_wrap">
+<div class="hl"><h4> 地金買取価格<span>Gold</span></h4><p></p></div>
+<p><a href="https://www.f-high-class.jp/kin/"><img src="x.jpg"></a></p>
+<p class="date">
+    2026年06月07日    現在の買取金額</p>
+<div class="inner">
+<table><tbody>
+<tr><th>K24（インゴット）</th><td>24,190円／1g</td></tr>
+<tr><th>K18</th><td><span>18,010円／1g</span></td></tr>
+<tr><th>K14</th><td>13,030円／1g</td></tr>
+<tr><th>Pt1000（インゴット）</th><td>9,710円／1g</td></tr>
+<tr><th>Pt900</th><td>8,730円／1g</td></tr>
+<tr><th>Pt850</th><td>8,200円／1g</td></tr>
+</tbody></table>
+<table><tbody>
+<tr><th>天皇陛下御即位記念10万円金貨</th><td>677,700円</td></tr>
+<tr><th>長野五輪冬季大会記念1万円金貨</th><td>352,404円</td></tr>
+</tbody></table>
+</div>
+</div>
+"""
 
 # ネットジャパンサイトの実際の構造に合わせたサンプルHTML
 SAMPLE_HTML = """
@@ -160,6 +184,38 @@ def test_scrape_simple_html_has_empty_scrap():
     assert result["gold_scrap"] == {}
     assert result["pt_scrap"] == {}
     assert result["silver_scrap"] == {}
+
+
+def test_scrape_published_prices():
+    """自社サイトのテーブルから金属6種の価格を抽出できる（金貨は除外）"""
+    result = scrape_published_price(html=PUBLISHED_HTML)
+    prices = result["prices"]
+    assert prices["K24"] == "24,190"
+    assert prices["K18"] == "18,010"
+    assert prices["K14"] == "13,030"
+    assert prices["Pt1000"] == "9,710"
+    assert prices["Pt900"] == "8,730"
+    assert prices["Pt850"] == "8,200"
+    # 金貨行(天皇陛下…)やK22は含まれない
+    assert "K22" not in prices
+    assert len(prices) == 6
+
+
+def test_scrape_published_date():
+    """日付を 'YYYY年MM月DD日' 形式で抽出できる"""
+    result = scrape_published_price(html=PUBLISHED_HTML)
+    assert result["date"] == "2026年06月07日"
+
+
+def test_scrape_published_raises_without_wrap():
+    """価格テーブルが無いHTMLでは ValueError を raise する"""
+    with pytest.raises(ValueError, match="買取価格テーブルが見つかりません"):
+        scrape_published_price(html="<html><body>なし</body></html>")
+
+
+def test_scrape_published_raises_without_args():
+    with pytest.raises(ValueError, match="url or html must be provided"):
+        scrape_published_price()
 
 
 @pytest.mark.slow

@@ -20,6 +20,12 @@ class Config:
         "https://www.net-japan.co.jp/precious_metal_partner/",
     )
 
+    # 自社サイト（フリマハイクラス）の現在公開中の買取価格ページ。画面を開いた時の初期値に使う。
+    PUBLISHED_SOURCE_URL = os.environ.get(
+        "PUBLISHED_SOURCE_URL",
+        "https://f-high-class.jp/",
+    )
+
     # GBP
     GBP_SEARCH_URL = os.environ.get(
         "GBP_SEARCH_URL",

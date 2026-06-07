@@ -11,7 +11,7 @@
         <button type="button" id="btn-settings" class="btn-settings" title="マージン設定">⚙️</button>
         <h1>金価格アップロードツール</h1>
 
-        <button id="btn-fetch" class="btn btn-fetch">価格を取得する</button>
+        <button id="btn-fetch" class="btn btn-fetch">ネットジャパンから価格を取得する</button>
 
         <form id="price-form" class="price-form hidden">
             <div class="form-group">
@@ -157,7 +157,7 @@
                 row.className = 'scrap-row';
                 row.innerHTML =
                     '<span class="scrap-label">' + SCRAP_LABELS[key] + '</span>' +
-                    '<span class="scrap-ref">参考: ' + refValue + '円</span>' +
+                    '<span class="scrap-ref">' + (refValue ? '参考: ' + refValue + '円' : '') + '</span>' +
                     '<span class="scrap-input-wrap">' +
                         '<input type="text" class="scrap-input" data-key="' + key + '" value="' + initValue + '" data-ref="' + refValue + '">' +
                         '<span class="unit">円</span>' +
@@ -247,11 +247,52 @@
             }
         }
 
-        // ボタンクリックでも取得できるよう残す（再取得用）
+        // 画面を開いた時は自社サイト（フリマハイクラス）の現在公開価格を入力欄の初期値として取得する
+        async function runFetchPublished() {
+            btnFetch.disabled = true;
+            hideStatus();
+            try {
+                const res = await fetch(BASE_URL + '/fetch-published', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.error) {
+                    showStatus('現在の公開価格の取得に失敗しました: ' + data.error, 'error');
+                } else {
+                    setDateFields(data.date);
+                    priceForm.classList.remove('hidden');
+                    btnSettings.classList.add('hidden');
+
+                    if (data.source_url) {
+                        sourceLinkEl.href = data.source_url;
+                        sourceLinkEl.textContent = data.source_url;
+                        sourceLinkWrap.classList.remove('hidden');
+                    }
+
+                    const values = data.values || {};
+                    // 参考列(ネットジャパン値)はまだ無いので空で描画する
+                    renderScrapGridWithRef(
+                        document.getElementById('gold-scrap-grid'),
+                        document.getElementById('gold-scrap-section'),
+                        values, {}, GOLD_SCRAP_KEYS
+                    );
+                    renderScrapGridWithRef(
+                        document.getElementById('pt-scrap-grid'),
+                        document.getElementById('pt-scrap-section'),
+                        values, {}, PT_SCRAP_KEYS
+                    );
+                }
+            } catch (e) {
+                showStatus('通信エラーが発生しました: ' + e.message, 'error');
+            } finally {
+                btnFetch.disabled = false;
+            }
+        }
+
+        // ボタンクリックでネットジャパンから新価格を取得（入力欄を上書き）
         btnFetch.addEventListener('click', runFetch);
 
-        // 画面を開いた瞬間に自動で取得する
-        runFetch();
+        // 画面を開いた瞬間に自社サイトの現在公開価格を取得する
+        runFetchPublished();
 
         btnUpload.addEventListener('click', async () => {
             const emptyLabels = findEmptyPriceLabels();

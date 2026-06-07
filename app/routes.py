@@ -1,8 +1,8 @@
 import re
 from flask import Blueprint, current_app, jsonify, render_template, request
 from app.auth import protect
-from app.scraper import scrape_gold_price
-from app.margins import compute_adjusted, load_margins, save_margins, MARGIN_KEYS
+from app.scraper import scrape_gold_price, scrape_published_price
+from app.margins import compute_adjusted, load_margins, save_margins, MARGIN_KEYS, floor10
 from app.wordpress import update_gold_page, today_jst_ja
 
 bp = Blueprint("main", __name__)
@@ -32,6 +32,30 @@ def fetch_price():
                 "Pt850":  raw["pt_scrap"]["Pt850"],
             },
             "adjusted": adjusted,
+            "source_url": url,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/fetch-published", methods=["POST"])
+def fetch_published():
+    """自社サイトの現在公開中の買取価格を取得し、入力欄の初期値として返す。
+
+    自社サイトには K22 が無いため、K24 から計算して補う
+    （自店K24 − K22マージン → 10円丸め。compute_adjusted と同じ式）。
+    """
+    try:
+        url = current_app.config["PUBLISHED_SOURCE_URL"]
+        data = scrape_published_price(url=url)
+        prices = dict(data["prices"])
+        if "K24" in prices:
+            margins = load_margins()
+            k24 = int(prices["K24"].replace(",", ""))
+            prices["K22"] = f"{floor10(k24 - margins['K22']):,}"
+        return jsonify({
+            "date": data["date"] or today_jst_ja(),
+            "values": prices,
             "source_url": url,
         })
     except Exception as e:
